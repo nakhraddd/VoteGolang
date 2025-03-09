@@ -5,6 +5,7 @@ import (
 	"VoteGolang/handlers"
 	"VoteGolang/middleware"
 	"github.com/gin-gonic/gin"
+	"log"
 )
 
 func main() {
@@ -12,12 +13,11 @@ func main() {
 	database.Migrate()
 
 	r := gin.Default()
-	r.POST("/vote/users_data", handlers.CreateUser) // Create user
-	r.GET("/vote/users_data/:id", handlers.GetUser) // Get user by ID
-	// Apply the authentication middleware to all vote routes
+	r.POST("/login", handlers.LoginHandler)
+	r.POST("/register", handlers.RegisterHandler)
+
 	voteRoutes := r.Group("/vote", middleware.AuthMiddleware())
 	{
-
 		voteRoutes.GET("/general_news", handlers.GetGeneralNews)
 		voteRoutes.GET("/petition", handlers.GetPetitions)
 		voteRoutes.GET("/president", handlers.GetPresidentCandidates)
@@ -25,5 +25,9 @@ func main() {
 		voteRoutes.GET("/deputy", handlers.GetDeputyCandidates)
 	}
 
-	r.Run(":8080")
+	err := r.Run(":8080")
+	if err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+		return
+	}
 }

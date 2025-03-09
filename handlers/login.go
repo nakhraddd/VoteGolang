@@ -1,37 +1,76 @@
+// handlers/auth.go
 package handlers
 
 import (
+	"VoteGolang/database"
+	"VoteGolang/models" // Assuming your models are in a "models" package
 	"VoteGolang/utils"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-// Login handler to authenticate user and generate token
-func Login(c *gin.Context) {
-	// Get user credentials from request body (you can replace this with actual authentication logic)
-	var loginData struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
 
-	if err := c.ShouldBindJSON(&loginData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+type RegisterRequest struct {
+	Id           string `json:"id"`
+	Username     string `json:"username"`
+	Password     string `json:"password"`
+	UserFullName string `json:"userFullName"`
+	BirthDate    string `json:"birthDate"`
+	Address      string `json:"address"`
+}
+
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
+// LoginHandler handles user login and token generation
+func LoginHandler(c *gin.Context) {
+	var loginRequest LoginRequest
+	if err := c.ShouldBindJSON(&loginRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Authenticate the user (for example, check the username and password)
-	// For simplicity, we assume a hardcoded user
-	if loginData.Username == "admin" && loginData.Password == "password123" {
-		// Generate JWT token
-		token, err := utils.CreateToken("12345") // Replace "12345" with actual user ID
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Send the token as a response
-		c.JSON(http.StatusOK, gin.H{"token": token})
-	} else {
+	user, err := database.GetUserByUsername(loginRequest.Username)
+	if err != nil || user.Password != loginRequest.Password {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
 	}
+
+	token, err := utils.CreateToken(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, LoginResponse{Token: token})
+}
+
+// RegisterHandler handles user registration
+func RegisterHandler(c *gin.Context) {
+	var registerRequest RegisterRequest
+	if err := c.ShouldBindJSON(&registerRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	newUser := models.User{
+		ID:           registerRequest.Id,
+		Username:     registerRequest.Username,
+		Password:     registerRequest.Password, // Consider hashing passwords!
+		UserFullName: registerRequest.UserFullName,
+		BirthDate:    registerRequest.BirthDate,
+		Address:      registerRequest.Address,
+	}
+
+	if err := database.CreateUser(&newUser); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register user"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
 }

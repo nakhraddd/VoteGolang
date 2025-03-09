@@ -51,3 +51,16 @@ func Migrate() {
 	}
 	fmt.Println("Database migration completed successfully!")
 }
+func GetUserByUsername(username string) (*models.User, error) {
+	var user models.User
+	result := DB.Where("username = ?", username).First(&user)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &user, nil
+}
+
+func CreateUser(user *models.User) error {
+	result := DB.Create(user)
+	return result.Error
+}

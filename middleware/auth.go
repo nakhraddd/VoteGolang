@@ -5,13 +5,24 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"os"
 	"strings"
 )
+
+// Retrieve the secret key from the environment variable
+var secretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
+
+func init() {
+	// Ensure the secret key is set
+	if len(secretKey) == 0 {
+		fmt.Println("JWT_SECRET_KEY environment variable is not set!")
+	}
+}
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer") {
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			c.Abort()
 			return
@@ -25,7 +36,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return []byte("your-secret-key"), nil
+			return secretKey, nil // Use the secret key from the environment
 		})
 
 		if err != nil || !token.Valid {
