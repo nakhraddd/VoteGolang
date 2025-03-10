@@ -5,6 +5,7 @@ import "gorm.io/gorm"
 type Vote struct {
 	gorm.Model
 	UserID        uint   `gorm:"index"`
+	VoteType      string `gorm:"not null"`
 	CandidateName string `gorm:"index"`
 }
 

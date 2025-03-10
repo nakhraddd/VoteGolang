@@ -23,14 +23,7 @@ func GetPetitions(c *gin.Context) {
 }
 
 func VotePetition(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid petition ID"})
-		return
-	}
-
-	voteType := c.Query("type")
+	petitionTitle := c.Param("title")
 
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -38,68 +31,73 @@ func VotePetition(c *gin.Context) {
 		return
 	}
 
+	userIDStr, ok := userID.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process user ID"})
+		return
+	}
+
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	voteType := c.Query("type")
+	if voteType != "vote_in_favor" && voteType != "vote_against" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid vote type. Use 'vote_in_favor' or 'vote_against'"})
+		return
+	}
+
 	db := database.GetDBInstance()
 	var petition models.Petition
 
-	if err := db.First(&petition, id).Error; err != nil {
+	// Find petition by title
+	if err := db.Where("title = ?", petitionTitle).First(&petition).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Petition not found"})
 		return
 	}
 
-	var vote models.PetitionVote
-	result := db.Where("user_id = ? AND petition_title = ?", userID, petition.Title).First(&vote) // Use petition title
-	if result.Error == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User has already voted for this petition"})
+	// Check if user has already voted
+	var existingVote models.Vote
+	if err := db.Where("user_id = ? AND candidate_name = ?", uint(userIDUint), petition.Title).First(&existingVote).Error; err == nil {
+		// User has already voted, prevent changing
+		c.JSON(http.StatusBadRequest, gin.H{"error": "You have already voted and cannot change your vote"})
 		return
-	} else if result.Error != gorm.ErrRecordNotFound {
+	} else if err != gorm.ErrRecordNotFound {
+		// Other DB error
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error checking vote"})
 		return
 	}
 
-	vote = models.PetitionVote{
-		UserID:        userID.(uint),
-		PetitionTitle: petition.Title, // Store petition title
+	// User has not voted yet, record the vote
+	newVote := models.Vote{
+		UserID:        uint(userIDUint),
+		CandidateName: petition.Title,
 		VoteType:      voteType,
 	}
 
-	if err := db.Create(&vote).Error; err != nil {
+	if err := db.Create(&newVote).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to record vote"})
 		return
 	}
 
-	switch voteType {
-	case "in_favor":
+	// Update vote count in the petitions table
+	if voteType == "vote_in_favor" {
 		petition.VotesInFavor++
-	case "against":
+	} else {
 		petition.VotesAgainst++
-	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid vote type. Use 'in_favor' or 'against' "})
-		return
 	}
 
+	// Save the updated petition vote count
 	if err := db.Save(&petition).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update vote count"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Vote recorded successfully"})
-}
-
-func GetPetitionVotes(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid petition ID"})
-		return
-	}
-
-	db := database.GetDBInstance()
-	var petition models.Petition
-
-	if err := db.First(&petition, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Petition not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"votes_in_favor": petition.VotesInFavor, "votes_against": petition.VotesAgainst})
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "Vote recorded successfully",
+		"votes_in_favor": petition.VotesInFavor,
+		"votes_against":  petition.VotesAgainst,
+	})
 }

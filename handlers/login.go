@@ -4,8 +4,10 @@ import (
 	"VoteGolang/database"
 	"VoteGolang/models" // Assuming your models are in a "models" package
 	"VoteGolang/utils"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 type LoginRequest struct {
@@ -70,4 +72,23 @@ func RegisterHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
+}
+
+func getUserID(c *gin.Context) (uint, error) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		return 0, fmt.Errorf("Unauthorized")
+	}
+
+	userIDStr, ok := userID.(string)
+	if !ok {
+		return 0, fmt.Errorf("Invalid user ID format")
+	}
+
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("Invalid user ID format")
+	}
+
+	return uint(userIDUint), nil
 }

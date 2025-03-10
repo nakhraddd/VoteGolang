@@ -39,12 +39,21 @@ func GetDBInstance() *gorm.DB {
 
 func Migrate() {
 	db := GetDBInstance()
-	err := db.AutoMigrate(&models.User{})
+	err := db.AutoMigrate(
+		&models.User{},
+		&models.Vote{},
+		&models.Deputy{},
+		&models.GeneralNews{},
+		&models.Petition{},
+		&models.President{},
+		&models.SessionDeputy{},
+	)
 	if err != nil {
 		log.Fatal("Error migrating the database:", err)
 	}
 	fmt.Println("Database migration completed successfully!")
 }
+
 func GetUserByUsername(username string) (*models.User, error) {
 	var user models.User
 	result := DB.Where("username = ?", username).First(&user)

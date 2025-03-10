@@ -21,20 +21,16 @@ func main() {
 		voteRoutes.GET("/general_news", handlers.GetGeneralNews)
 
 		voteRoutes.GET("/petition", handlers.GetPetitions)
-		voteRoutes.POST("/petitions/:id/vote", handlers.VotePetition)
-		voteRoutes.GET("/petitions/:id/votes", handlers.GetPetitionVotes)
+		voteRoutes.POST("/petitions/:title", handlers.VotePetition)
 
 		voteRoutes.GET("/president", handlers.GetPresidentCandidates)
-		voteRoutes.POST("/presidents/:id/vote", handlers.VoteForPresident)
-		voteRoutes.GET("/presidents/:id/votes", handlers.GetPresidentVoteCount)
+		voteRoutes.POST("/presidents/:name", handlers.VoteForPresident)
 
 		voteRoutes.GET("/session_deputy", handlers.GetSessionDeputyCandidates)
-		voteRoutes.POST("/session-deputies/:id/vote", handlers.VoteForSessionDeputy)
-		voteRoutes.GET("/session-deputies/:id/votes", handlers.GetSessionDeputyVoteCount)
+		voteRoutes.POST("/session_deputies/:name", handlers.VoteForSessionDeputy)
 
 		voteRoutes.GET("/deputy", handlers.GetDeputyCandidates)
-		voteRoutes.POST("/deputies/vote", handlers.VoteForDeputy)
-		voteRoutes.GET("/deputies/:id/votes", handlers.GetDeputyVoteCount)
+		voteRoutes.POST("/deputy/:name", handlers.VoteForDeputy)
 
 	}
 

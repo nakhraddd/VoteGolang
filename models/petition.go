@@ -7,6 +7,6 @@ type Petition struct {
 	Title        string `json:"title"`
 	Photo        string `json:"photo"`
 	Description  string `json:"description"`
-	VotesInFavor int    `json:"votes"`
-	VotesAgainst int    `json:"votes_against"`
+	VotesInFavor int    `json:"vote_in_favor" gorm:"default:0"`
+	VotesAgainst int    `json:"vote_against" gorm:"default:0"`
 }
