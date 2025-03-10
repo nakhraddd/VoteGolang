@@ -1,4 +1,3 @@
-// handlers/auth.go
 package handlers
 
 import (
@@ -27,7 +26,6 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 
-// LoginHandler handles user login and token generation
 func LoginHandler(c *gin.Context) {
 	var loginRequest LoginRequest
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {
@@ -50,7 +48,6 @@ func LoginHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, LoginResponse{Token: token})
 }
 
-// RegisterHandler handles user registration
 func RegisterHandler(c *gin.Context) {
 	var registerRequest RegisterRequest
 	if err := c.ShouldBindJSON(&registerRequest); err != nil {
@@ -61,7 +58,7 @@ func RegisterHandler(c *gin.Context) {
 	newUser := models.User{
 		ID:           registerRequest.Id,
 		Username:     registerRequest.Username,
-		Password:     registerRequest.Password, // Consider hashing passwords!
+		Password:     registerRequest.Password,
 		UserFullName: registerRequest.UserFullName,
 		BirthDate:    registerRequest.BirthDate,
 		Address:      registerRequest.Address,

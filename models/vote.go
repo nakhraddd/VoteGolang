@@ -4,7 +4,13 @@ import "gorm.io/gorm"
 
 type Vote struct {
 	gorm.Model
-	UserID    uint   `gorm:"not null"`
-	Candidate string `gorm:"not null"`
-	Category  string `gorm:"not null"` // "President", "Deputy", etc.
+	UserID        uint   `gorm:"index"`
+	CandidateName string `gorm:"index"`
+}
+
+type PetitionVote struct {
+	gorm.Model
+	UserID        uint   `gorm:"index"`
+	PetitionTitle string `gorm:"index"`
+	VoteType      string
 }

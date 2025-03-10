@@ -4,19 +4,90 @@ import (
 	"VoteGolang/database"
 	"VoteGolang/models"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"net/http"
+	"strconv"
 )
 
 func GetSessionDeputyCandidates(c *gin.Context) {
 	var candidates []models.SessionDeputy
 	db := database.GetDBInstance()
 
-	// Use GORM's Find method to get the candidates from the "session_deputy" table
 	if err := db.Find(&candidates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Return the news as JSON
 	c.JSON(http.StatusOK, candidates)
+}
+
+func VoteForSessionDeputy(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session deputy ID"})
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	db := database.GetDBInstance()
+	var deputy models.SessionDeputy
+
+	if err := db.First(&deputy, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Session deputy not found"})
+		return
+	}
+
+	var vote models.Vote
+	result := db.Where("user_id = ? AND candidate_name = ?", userID, deputy.Name).First(&vote)
+	if result.Error == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User has already voted for this session deputy"})
+		return
+	} else if result.Error != gorm.ErrRecordNotFound {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error checking vote"})
+		return
+	}
+
+	vote = models.Vote{
+		UserID:        userID.(uint),
+		CandidateName: deputy.Name,
+	}
+
+	if err := db.Create(&vote).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to record vote"})
+		return
+	}
+
+	deputy.Votes++
+
+	if err := db.Save(&deputy).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update vote count"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Vote recorded successfully"})
+}
+
+func GetSessionDeputyVoteCount(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session deputy ID"})
+		return
+	}
+
+	db := database.GetDBInstance()
+	var deputy models.SessionDeputy
+
+	if err := db.First(&deputy, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Session deputy not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"votes": deputy.Votes})
 }

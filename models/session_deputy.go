@@ -10,4 +10,5 @@ type SessionDeputy struct {
 	Age       int    `json:"age"`
 	Party     string `json:"party"`
 	Region    string `json:"region"`
+	Votes     int    `json:"votes"`
 }
