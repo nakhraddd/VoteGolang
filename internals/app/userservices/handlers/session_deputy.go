@@ -1,15 +1,15 @@
 package handlers
 
 import (
-	"VoteGolang/database"
-	"VoteGolang/models"
+	"VoteGolang/internals/app/backservices/database"
+	"VoteGolang/internals/app/userservices/models"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
 
-func GetDeputyCandidates(c *gin.Context) {
-	var candidates []models.Deputy
+func GetSessionDeputyCandidates(c *gin.Context) {
+	var candidates []models.SessionDeputy
 	db := database.GetDBInstance()
 
 	if err := db.Find(&candidates).Error; err != nil {
@@ -20,8 +20,8 @@ func GetDeputyCandidates(c *gin.Context) {
 	c.JSON(http.StatusOK, candidates)
 }
 
-func VoteForDeputy(c *gin.Context) {
-	deputyName := c.Param("name")
+func VoteForSessionDeputy(c *gin.Context) {
+	sessionDeputyName := c.Param("name")
 
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -42,33 +42,33 @@ func VoteForDeputy(c *gin.Context) {
 	}
 
 	db := database.GetDBInstance()
-	var deputy models.Deputy
+	var sessionDeputy models.SessionDeputy
 
-	if err := db.Where("name = ?", deputyName).First(&deputy).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Deputy not found"})
+	if err := db.Where("name = ?", sessionDeputyName).First(&sessionDeputy).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Session Deputy not found"})
 		return
 	}
 
 	var vote models.Vote
-	if err := db.Where("user_id = ? AND candidate_name = ?", uint(userIDUint), deputy.Name).First(&vote).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User has already voted for this deputy"})
+	if err := db.Where("user_id = ? AND candidate_name = ?", uint(userIDUint), sessionDeputy.Name).First(&vote).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User has already voted for this session deputy"})
 		return
 	}
 
 	vote = models.Vote{
 		UserID:        uint(userIDUint),
-		CandidateName: deputy.Name,
+		CandidateName: sessionDeputy.Name,
 	}
 	if err := db.Create(&vote).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to record vote"})
 		return
 	}
 
-	deputy.Votes++
-	if err := db.Save(&deputy).Error; err != nil {
+	sessionDeputy.Votes++
+	if err := db.Save(&sessionDeputy).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update vote count"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Vote recorded successfully", "votes": deputy.Votes})
+	c.JSON(http.StatusOK, gin.H{"message": "Vote recorded successfully", "votes": sessionDeputy.Votes})
 }

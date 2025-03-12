@@ -1,7 +1,7 @@
 package database
 
 import (
-	"VoteGolang/models"
+	"VoteGolang/internals/app/userservices/models"
 	"fmt"
 	"log"
 

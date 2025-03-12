@@ -1,9 +1,9 @@
 package main
 
 import (
-	"VoteGolang/database"
-	"VoteGolang/handlers"
-	"VoteGolang/middleware"
+	"VoteGolang/internals/app/backservices/database"
+	"VoteGolang/internals/app/userservices/handlers"
+	"VoteGolang/internals/app/userservices/middleware"
 	"github.com/gin-gonic/gin"
 	"log"
 )

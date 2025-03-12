@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"VoteGolang/database"
-	"VoteGolang/models" // Assuming your models are in a "models" package
-	"VoteGolang/utils"
+	"VoteGolang/internals/app/backservices/database"
+	"VoteGolang/internals/app/userservices/models"
+	"VoteGolang/internals/app/userservices/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"

@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"VoteGolang/database"
-	"VoteGolang/models"
+	"VoteGolang/internals/app/backservices/database"
+	"VoteGolang/internals/app/userservices/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
