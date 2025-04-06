@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"VoteGolang/internals/domain"
+	"VoteGolang/pkg/domain"
 	"fmt"
 	"github.com/golang-jwt/jwt"
 	"time"
@@ -13,7 +13,7 @@ type JwtToken struct {
 
 type JwtClaims struct {
 	SessionID string `json:"sid"`
-	UserID    uint32 `json:"uid"`
+	UserID    string `json:"uid"`
 	jwt.StandardClaims
 }
 

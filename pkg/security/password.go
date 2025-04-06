@@ -1,18 +1,8 @@
-package utils
+package security
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"golang.org/x/crypto/bcrypt"
 )
-
-func generateSessionID() string {
-	bytes := make([]byte, 16)
-	if _, err := rand.Read(bytes); err != nil {
-		panic(err)
-	}
-	return hex.EncodeToString(bytes)
-}
 
 func HashPassword(pw string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(pw), 14)

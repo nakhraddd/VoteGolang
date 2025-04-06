@@ -1,16 +1,15 @@
-package deliveries
+package usecases
 
 import (
-	"VoteGolang/internals/usecases"
 	"encoding/json"
 	"net/http"
 )
 
 type AuthHandler struct {
-	UseCase *usecases.AuthUseCase
+	UseCase *AuthUseCase
 }
 
-func NewAuthHandler(uc *usecases.AuthUseCase) *AuthHandler {
+func NewAuthHandler(uc *AuthUseCase) *AuthHandler {
 	return &AuthHandler{UseCase: uc}
 }
 
