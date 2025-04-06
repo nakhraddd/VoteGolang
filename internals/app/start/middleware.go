@@ -2,28 +2,30 @@ package start
 
 import (
 	"VoteGolang/pkg/domain"
-	"fmt"
+	_ "fmt"
 	"net/http"
-	"strings"
 )
 
-func JWTMiddleware(tokenManager domain.TokenManager) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		tokenString := r.Header.Get("Authorization")
-		if tokenString == "" {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
+type contextKey string
 
-		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+const sessionKey contextKey = "session"
 
-		isValid, err := tokenManager.Check(&domain.Session{}, tokenString)
-		if err != nil || !isValid {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
+func JWTMiddleware(tokenManager domain.TokenManager) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := r.Header.Get("Authorization")
+			if token == "" {
+				http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+				return
+			}
 
-		fmt.Println("JWT Token is valid")
-		http.DefaultServeMux.ServeHTTP(w, r)
+			valid, err := tokenManager.Check(r.Context(), token)
+			if err != nil || !valid {
+				http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
 	}
 }

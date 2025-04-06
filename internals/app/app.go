@@ -1,4 +1,4 @@
-package start
+package app
 
 import (
 	"VoteGolang/internals/app/conf"
