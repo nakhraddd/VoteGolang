@@ -2,7 +2,7 @@ package models
 
 import "gorm.io/gorm"
 
-type SessionDeputy struct {
+type Candidate struct {
 	gorm.Model
 	Name      string `json:"name"`
 	Photo     string `json:"photo"`
@@ -11,4 +11,5 @@ type SessionDeputy struct {
 	Party     string `json:"party"`
 	Region    string `json:"region"`
 	Votes     int    `json:"votes" gorm:"default:0"`
+	Type      string `json:"type"`
 }

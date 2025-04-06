@@ -1,8 +1,8 @@
-package handlers
+package repositories
 
 import (
-	"VoteGolang/internals/app/backservices/database"
-	"VoteGolang/internals/app/userservices/models"
+	"VoteGolang/internals/app/connections"
+	"VoteGolang/internals/data/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,7 +10,7 @@ import (
 
 func GetGeneralNews(c *gin.Context) {
 	var news []models.GeneralNews
-	db := database.GetDBInstance()
+	db := connections.GetDBInstance()
 
 	if err := db.Find(&news).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

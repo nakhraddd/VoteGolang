@@ -1,36 +1,36 @@
 package main
 
 import (
-	"VoteGolang/internals/app/backservices/database"
-	"VoteGolang/internals/app/userservices/handlers"
-	"VoteGolang/internals/app/userservices/middleware"
+	"VoteGolang/internals/app/connections"
+	"VoteGolang/internals/deliveries/middleware"
+	"VoteGolang/internals/repositories"
 	"github.com/gin-gonic/gin"
 	"log"
 )
 
 func main() {
-	database.GetDB()
-	database.Migrate()
+	connections.GetDB()
+	connections.Migrate()
 
 	r := gin.Default()
-	r.POST("/login", handlers.LoginHandler)
-	r.POST("/register", handlers.RegisterHandler)
+	r.POST("/login", repositories.LoginHandler)
+	r.POST("/register", repositories.RegisterHandler)
 
 	voteRoutes := r.Group("/vote", middleware.AuthMiddleware())
 	{
-		voteRoutes.GET("/general_news", handlers.GetGeneralNews)
+		voteRoutes.GET("/general_news", repositories.GetGeneralNews)
 
-		voteRoutes.GET("/petition", handlers.GetPetitions)
-		voteRoutes.POST("/petitions/:title", handlers.VotePetition)
+		voteRoutes.GET("/petition", repositories.GetPetitions)
+		voteRoutes.POST("/petitions/:title", repositories.VotePetition)
 
-		voteRoutes.GET("/president", handlers.GetPresidentCandidates)
-		voteRoutes.POST("/presidents/:name", handlers.VoteForPresident)
+		voteRoutes.GET("/president", repositories.GetPresidentCandidates)
+		voteRoutes.POST("/presidents/:name", repositories.VoteForPresident)
 
-		voteRoutes.GET("/session_deputy", handlers.GetSessionDeputyCandidates)
-		voteRoutes.POST("/session_deputies/:name", handlers.VoteForSessionDeputy)
+		voteRoutes.GET("/session_deputy", repositories.GetSessionDeputyCandidates)
+		voteRoutes.POST("/session_deputies/:name", repositories.VoteForSessionDeputy)
 
-		voteRoutes.GET("/deputy", handlers.GetDeputyCandidates)
-		voteRoutes.POST("/deputy/:name", handlers.VoteForDeputy)
+		voteRoutes.GET("/deputy", repositories.GetDeputyCandidates)
+		voteRoutes.POST("/deputy/:name", repositories.VoteForDeputy)
 
 	}
 

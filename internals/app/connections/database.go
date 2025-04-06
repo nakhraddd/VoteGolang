@@ -1,7 +1,7 @@
-package database
+package connections
 
 import (
-	"VoteGolang/internals/app/userservices/models"
+	models2 "VoteGolang/internals/data/models"
 	"fmt"
 	"log"
 
@@ -40,13 +40,13 @@ func GetDBInstance() *gorm.DB {
 func Migrate() {
 	db := GetDBInstance()
 	err := db.AutoMigrate(
-		&models.User{},
-		&models.Vote{},
-		&models.Deputy{},
-		&models.GeneralNews{},
-		&models.Petition{},
-		&models.President{},
-		&models.SessionDeputy{},
+		&models2.User{},
+		&models2.Vote{},
+		&models2.Deputy{},
+		&models2.GeneralNews{},
+		&models2.Petition{},
+		&models2.President{},
+		&models2.SessionDeputy{},
 	)
 	if err != nil {
 		log.Fatal("Error migrating the database:", err)
@@ -54,8 +54,8 @@ func Migrate() {
 	fmt.Println("Database migration completed successfully!")
 }
 
-func GetUserByUsername(username string) (*models.User, error) {
-	var user models.User
+func GetUserByUsername(username string) (*models2.User, error) {
+	var user models2.User
 	result := DB.Where("username = ?", username).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
@@ -63,7 +63,7 @@ func GetUserByUsername(username string) (*models.User, error) {
 	return &user, nil
 }
 
-func CreateUser(user *models.User) error {
+func CreateUser(user *models2.User) error {
 	result := DB.Create(user)
 	return result.Error
 }
