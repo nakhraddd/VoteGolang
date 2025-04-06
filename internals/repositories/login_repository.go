@@ -1,9 +1,9 @@
-package handlers
+package repositories
 
 import (
-	"VoteGolang/internals/app/backservices/database"
-	"VoteGolang/internals/app/userservices/models"
-	"VoteGolang/internals/app/userservices/utils"
+	"VoteGolang/internals/app/connections"
+	"VoteGolang/internals/data"
+	"VoteGolang/internals/deliveries"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -35,13 +35,13 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	user, err := database.GetUserByUsername(loginRequest.Username)
+	user, err := connections.GetUserByUsername(loginRequest.Username)
 	if err != nil || user.Password != loginRequest.Password {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	token, err := utils.CreateToken(user.ID)
+	token, err := deliveries.CreateToken(user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -57,7 +57,7 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	newUser := models.User{
+	newUser := data.User{
 		ID:           registerRequest.Id,
 		Username:     registerRequest.Username,
 		Password:     registerRequest.Password,
@@ -66,7 +66,7 @@ func RegisterHandler(c *gin.Context) {
 		Address:      registerRequest.Address,
 	}
 
-	if err := database.CreateUser(&newUser); err != nil {
+	if err := connections.CreateUser(&newUser); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register user"})
 		return
 	}

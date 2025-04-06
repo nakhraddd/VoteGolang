@@ -1,6 +1,7 @@
 package connections
 
 import (
+	"VoteGolang/internals/data"
 	models2 "VoteGolang/internals/data/models"
 	"fmt"
 	"log"
@@ -40,11 +41,11 @@ func GetDBInstance() *gorm.DB {
 func Migrate() {
 	db := GetDBInstance()
 	err := db.AutoMigrate(
-		&models2.User{},
-		&models2.Vote{},
+		&data.User{},
+		&data.Vote{},
 		&models2.Deputy{},
-		&models2.GeneralNews{},
-		&models2.Petition{},
+		&data.GeneralNews{},
+		&data.Petition{},
 		&models2.President{},
 		&models2.SessionDeputy{},
 	)
@@ -54,8 +55,8 @@ func Migrate() {
 	fmt.Println("Database migration completed successfully!")
 }
 
-func GetUserByUsername(username string) (*models2.User, error) {
-	var user models2.User
+func GetUserByUsername(username string) (*data.User, error) {
+	var user data.User
 	result := DB.Where("username = ?", username).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
@@ -63,7 +64,7 @@ func GetUserByUsername(username string) (*models2.User, error) {
 	return &user, nil
 }
 
-func CreateUser(user *models2.User) error {
+func CreateUser(user *data.User) error {
 	result := DB.Create(user)
 	return result.Error
 }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"VoteGolang/internals/app/connections"
-	"VoteGolang/internals/deliveries/middleware"
+	"VoteGolang/internals/deliveries"
 	"VoteGolang/internals/repositories"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -16,7 +16,7 @@ func main() {
 	r.POST("/login", repositories.LoginHandler)
 	r.POST("/register", repositories.RegisterHandler)
 
-	voteRoutes := r.Group("/vote", middleware.AuthMiddleware())
+	voteRoutes := r.Group("/vote", deliveries.AuthMiddleware())
 	{
 		voteRoutes.GET("/general_news", repositories.GetGeneralNews)
 
