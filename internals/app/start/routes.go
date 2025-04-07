@@ -6,13 +6,15 @@ import (
 	"net/http"
 )
 
-func RegisterRoutes(authUseCase *usecases.AuthUseCase, tokenManager domain.TokenManager) {
+func RegisterRoutes(mux *http.ServeMux, authUseCase *usecases.AuthUseCase, tokenManager domain.TokenManager) {
 	authHandler := usecases.NewAuthHandler(authUseCase, tokenManager)
 
-	http.HandleFunc("/login", authHandler.Login)
-	http.HandleFunc("/register", authHandler.Register)
+	// Register routes with the passed mux
+	mux.HandleFunc("/login", authHandler.Login)
+	mux.HandleFunc("/register", authHandler.Register)
 
-	http.Handle("/protected", JWTMiddleware(tokenManager)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Protected route with middleware
+	mux.Handle("/protected", JWTMiddleware(tokenManager)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("You have access to the protected route"))
 	})))
 }

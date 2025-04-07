@@ -2,7 +2,6 @@ package main
 
 import (
 	"VoteGolang/internals/app"
-	"VoteGolang/internals/app/start"
 	"log"
 )
 
@@ -12,7 +11,5 @@ func main() {
 		log.Fatalf("Error initializing app: %v", err)
 	}
 
-	start.RegisterRoutes(authUseCase, tokenManager)
-
-	appInstance.Run()
+	appInstance.Run(authUseCase, tokenManager)
 }

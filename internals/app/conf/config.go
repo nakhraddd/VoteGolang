@@ -18,10 +18,10 @@ func LoadConfig() *Config {
 	return &Config{
 		JWTSecret: getEnv("JWT_SECRET", "defaultsecret"),
 		DBHost:    getEnv("DB_HOST", "localhost"),
-		DBPort:    getEnv("DB_PORT", "5432"),
+		DBPort:    getEnv("DB_PORT", "3306"),
 		DBUser:    getEnv("DB_USER", "root"),
 		DBPass:    getEnv("DB_PASS", "Darhani2004"),
-		DBName:    getEnv("DB_NAME", "votedb"),
+		DBName:    getEnv("DB_NAME", "vote_database"),
 	}
 }
 
