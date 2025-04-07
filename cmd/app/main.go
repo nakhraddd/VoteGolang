@@ -7,12 +7,12 @@ import (
 )
 
 func main() {
-	app, err := app.NewApp()
+	appInstance, authUseCase, tokenManager, err := app.NewApp()
 	if err != nil {
 		log.Fatalf("Error initializing app: %v", err)
 	}
 
-	start.RegisterRoutes()
+	start.RegisterRoutes(authUseCase, tokenManager)
 
-	app.Run()
+	appInstance.Run()
 }

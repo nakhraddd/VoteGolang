@@ -7,7 +7,10 @@ import (
 )
 
 func RegisterRoutes(authUseCase *usecases.AuthUseCase, tokenManager domain.TokenManager) {
-	http.HandleFunc("/login", usecases.NewAuthHandler(authUseCase).Login)
+	authHandler := usecases.NewAuthHandler(authUseCase, tokenManager)
+
+	http.HandleFunc("/login", authHandler.Login)
+	http.HandleFunc("/register", authHandler.Register)
 
 	http.Handle("/protected", JWTMiddleware(tokenManager)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("You have access to the protected route"))

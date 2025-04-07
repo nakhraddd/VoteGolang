@@ -21,7 +21,6 @@ func NewVoteRepository(db *gorm.DB) VoteRepository {
 }
 
 func (r *voteRepository) VoteForCandidate(vote *data.Vote) error {
-	// Check if user has already voted for this candidate
 	exists, err := r.HasUserVotedForCandidate(vote.UserID, vote.CandidateID, vote.CandidateType)
 	if err != nil {
 		return err
@@ -30,26 +29,19 @@ func (r *voteRepository) VoteForCandidate(vote *data.Vote) error {
 		return errors.New("user has already voted for this candidate")
 	}
 
-	// Add vote record
 	if err := r.db.Create(vote).Error; err != nil {
 		return err
 	}
 
-	// Increment vote count in corresponding candidate table
-	switch vote.CandidateType {
-	case "president":
-		return r.db.Model(&domain.President{}).Where("id = ?", vote.CandidateID).Update("votes", gorm.Expr("votes + ?", 1)).Error
-	case "deputy":
-		return r.db.Model(&domain.Deputy{}).Where("id = ?", vote.CandidateID).Update("votes", gorm.Expr("votes + ?", 1)).Error
-	case "session_deputy":
-		return r.db.Model(&domain.SessionDeputy{}).Where("id = ?", vote.CandidateID).Update("votes", gorm.Expr("votes + ?", 1)).Error
-	default:
-		return errors.New("invalid candidate type")
-	}
+	return r.db.Model(&data.Candidate{}).
+		Where("id = ? AND type = ?", vote.CandidateID, vote.CandidateType).
+		Update("votes", gorm.Expr("votes + ?", 1)).Error
 }
 
 func (r *voteRepository) HasUserVotedForCandidate(userID string, candidateID uint, candidateType string) (bool, error) {
 	var count int64
-	err := r.db.Model(&data.Vote{}).Where("user_id = ? AND candidate_id = ? AND candidate_type = ?", userID, candidateID, candidateType).Count(&count).Error
+	err := r.db.Model(&data.Vote{}).
+		Where("user_id = ? AND candidate_id = ? AND candidate_type = ?", userID, candidateID, candidateType).
+		Count(&count).Error
 	return count > 0, err
 }

@@ -6,6 +6,7 @@ import (
 	"VoteGolang/internals/auth"
 	"VoteGolang/internals/repositories"
 	"VoteGolang/internals/usecases"
+	"VoteGolang/pkg/domain"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
@@ -16,11 +17,11 @@ type App struct {
 	DB     *gorm.DB
 }
 
-func NewApp() (*App, error) {
+func NewApp() (*App, *usecases.AuthUseCase, domain.TokenManager, error) {
 	config := conf.LoadConfig()
 	db, err := connect.ConnectDB(config)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	app := &App{
@@ -32,9 +33,7 @@ func NewApp() (*App, error) {
 	tokenManager := auth.NewJwtToken(config.JWTSecret)
 	authUseCase := usecases.NewAuthUseCase(userRepo, tokenManager)
 
-	http.HandleFunc("/login", usecases.NewAuthHandler(authUseCase).Login)
-
-	return app, nil
+	return app, authUseCase, tokenManager, nil
 }
 
 func (a *App) Run() {

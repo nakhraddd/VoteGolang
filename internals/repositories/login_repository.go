@@ -1,13 +1,14 @@
 package repositories
 
 import (
-	"VoteGolang/internals/app/connections"
 	"VoteGolang/internals/data"
-	"VoteGolang/internals/deliveries"
+	"VoteGolang/pkg/domain"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type LoginRequest struct {
@@ -28,6 +29,9 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 
+var userRepo UserRepository
+var tokenManager domain.TokenManager
+
 func LoginHandler(c *gin.Context) {
 	var loginRequest LoginRequest
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {
@@ -35,13 +39,18 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	user, err := connections.GetUserByUsername(loginRequest.Username)
-	if err != nil || user.Password != loginRequest.Password {
+	user, err := userRepo.GetByUsername(loginRequest.Username)
+	if err != nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password)) != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	token, err := deliveries.CreateToken(user.ID)
+	session := &domain.Session{
+		UserID: user.ID,
+		Expiry: time.Now().Add(24 * time.Hour).Unix(),
+	}
+
+	token, err := tokenManager.Create(session, session.Expiry)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -57,16 +66,22 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
+
 	newUser := data.User{
 		ID:           registerRequest.Id,
 		Username:     registerRequest.Username,
-		Password:     registerRequest.Password,
+		Password:     string(hashedPassword),
 		UserFullName: registerRequest.UserFullName,
 		BirthDate:    registerRequest.BirthDate,
 		Address:      registerRequest.Address,
 	}
 
-	if err := connections.CreateUser(&newUser); err != nil {
+	if err := userRepo.Create(&newUser); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register user"})
 		return
 	}
@@ -77,17 +92,17 @@ func RegisterHandler(c *gin.Context) {
 func getUserID(c *gin.Context) (uint, error) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		return 0, fmt.Errorf("Unauthorized")
+		return 0, fmt.Errorf("unauthorized")
 	}
 
 	userIDStr, ok := userID.(string)
 	if !ok {
-		return 0, fmt.Errorf("Invalid user ID format")
+		return 0, fmt.Errorf("invalid user ID format")
 	}
 
 	userIDUint, err := strconv.ParseUint(userIDStr, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("Invalid user ID format")
+		return 0, fmt.Errorf("invalid user ID format")
 	}
 
 	return uint(userIDUint), nil

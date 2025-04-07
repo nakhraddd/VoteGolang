@@ -2,7 +2,6 @@ package start
 
 import (
 	"VoteGolang/pkg/domain"
-	_ "fmt"
 	"net/http"
 )
 
