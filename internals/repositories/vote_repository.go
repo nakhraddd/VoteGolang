@@ -21,7 +21,7 @@ func NewVoteRepository(db *gorm.DB) VoteRepository {
 func (r *voteRepository) HasVoted(userID string, voteType string) (bool, error) {
 	var count int64
 	err := r.db.Model(&data.Vote{}).
-		Where("user_id = ? AND type = ?", userID, voteType).
+		Where("user_id = ? AND candidate_type = ?", userID, voteType).
 		Count(&count).Error
 	return count > 0, err
 }

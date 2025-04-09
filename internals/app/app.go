@@ -52,12 +52,18 @@ func (a *App) Run(authUseCase *usecases.AuthUseCase, tokenManager domain.TokenMa
 	authHandler := auth2.NewAuthHandler(authUseCase, tokenManager)
 	deliveries.LoginRegisterRoutes(mux, authHandler, tokenManager)
 
-	//Candidate
+	_, ok := tokenManager.(domain.TokenManager)
+	if !ok {
+		log.Fatal("Token manager is not of type *auth.JwtTokenManager")
+	}
+
+	// Candidate
 	candidateHandler := handlers.NewCandidateHandler(
 		usecases.NewCandidateUseCase(
 			repositories.NewCandidateRepository(a.DB),
 			repositories.NewVoteRepository(a.DB),
 		),
+		tokenManager.(*domain.JwtToken),
 	)
 	deliveries.RegisterCandidateRoutes(mux, candidateHandler, tokenManager)
 

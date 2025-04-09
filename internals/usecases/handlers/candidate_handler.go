@@ -1,17 +1,25 @@
 package handlers
 
 import (
+	"VoteGolang/internals/services/auth"
 	"VoteGolang/internals/usecases"
+	"VoteGolang/pkg/domain"
 	"encoding/json"
+	"github.com/dgrijalva/jwt-go"
+	"log"
 	"net/http"
 )
 
 type CandidateHandler struct {
-	UseCase *usecases.CandidateUseCase
+	UseCase      *usecases.CandidateUseCase
+	TokenManager *domain.JwtToken
 }
 
-func NewCandidateHandler(uc *usecases.CandidateUseCase) *CandidateHandler {
-	return &CandidateHandler{UseCase: uc}
+func NewCandidateHandler(uc *usecases.CandidateUseCase, tokenManager *domain.JwtToken) *CandidateHandler {
+	return &CandidateHandler{
+		UseCase:      uc,
+		TokenManager: tokenManager,
+	}
 }
 
 func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -31,24 +39,46 @@ func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID")
-	if userID == nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	token, err := auth.ExtractTokenFromRequest(r)
+	if err != nil {
+		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
 		return
 	}
 
+	payload := &domain.JwtClaims{}
+	_, err = jwt.ParseWithClaims(token, payload, func(t *jwt.Token) (interface{}, error) {
+		return h.TokenManager.Secret, nil
+	})
+	if err != nil {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	userID := payload.UserID
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	log.Printf("User ID from token: %s", userID)
+
 	type voteRequest struct {
 		CandidateID   uint   `json:"candidate_id"`
-		CandidateType string `json:"type"`
+		CandidateType string `json:"candidate_type"`
 	}
 
 	var req voteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		http.Error(w, "Invalid request format", http.StatusBadRequest)
 		return
 	}
 
-	err := h.UseCase.Vote(req.CandidateID, userID.(string), req.CandidateType)
+	err = h.UseCase.Vote(req.CandidateID, userID, req.CandidateType)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

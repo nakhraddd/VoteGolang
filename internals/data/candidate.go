@@ -12,5 +12,5 @@ type Candidate struct {
 	Party     string `json:"party"`
 	Region    string `json:"region"`
 	Votes     int    `json:"votes" gorm:"default:0"`
-	Type      string `json:"type"`
+	Type      string `json:"candidate_type"`
 }
