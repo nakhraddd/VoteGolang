@@ -1,18 +1,19 @@
-package usecases
+package auth
 
 import (
 	"VoteGolang/internals/data"
+	"VoteGolang/internals/usecases"
 	"VoteGolang/pkg/domain"
 	"encoding/json"
 	"net/http"
 )
 
 type AuthHandler struct {
-	authUseCase  *AuthUseCase
+	authUseCase  *usecases.AuthUseCase
 	tokenManager domain.TokenManager
 }
 
-func NewAuthHandler(authUseCase *AuthUseCase, tokenManager domain.TokenManager) *AuthHandler {
+func NewAuthHandler(authUseCase *usecases.AuthUseCase, tokenManager domain.TokenManager) *AuthHandler {
 	return &AuthHandler{
 		authUseCase:  authUseCase,
 		tokenManager: tokenManager,

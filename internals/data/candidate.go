@@ -4,6 +4,7 @@ import "gorm.io/gorm"
 
 type Candidate struct {
 	gorm.Model
+	ID        uint   `gorm:"primarykey"`
 	Name      string `json:"name"`
 	Photo     string `json:"photo"`
 	Education string `json:"education"`

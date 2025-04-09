@@ -3,9 +3,10 @@ package usecases
 import (
 	"VoteGolang/internals/data"
 	"VoteGolang/internals/repositories"
+	"VoteGolang/internals/security"
+	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -27,12 +28,12 @@ func (a *AuthUseCase) Login(username, password string) (string, error) {
 		return "", fmt.Errorf("user not found")
 	}
 
-	if !CheckPasswordHash(password, user.Password) {
+	if !security.CheckPasswordHash(password, user.Password) {
 		return "", fmt.Errorf("invalid credentials")
 	}
 
 	session := &domain.Session{
-		ID:     generateSessionID(),
+		ID:     utils.GenerateSessionID(),
 		UserID: user.ID,
 	}
 
@@ -45,7 +46,7 @@ func (a *AuthUseCase) Login(username, password string) (string, error) {
 }
 
 func (a *AuthUseCase) Register(user *data.User) error {
-	hashedPassword, err := HashPassword(user.Password)
+	hashedPassword, err := security.HashPassword(user.Password)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %v", err)
 	}
@@ -57,18 +58,4 @@ func (a *AuthUseCase) Register(user *data.User) error {
 	}
 
 	return nil
-}
-
-func generateSessionID() string {
-	return fmt.Sprintf("%x", time.Now().UnixNano())
-}
-
-func HashPassword(pw string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
-	return string(bytes), err
-}
-
-func CheckPasswordHash(pw, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(pw))
-	return err == nil
 }
