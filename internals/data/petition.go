@@ -4,6 +4,7 @@ import "gorm.io/gorm"
 
 type Petition struct {
 	gorm.Model
+	ID           uint   `gorm:"primaryKey;autoIncrement"`
 	Title        string `json:"title"`
 	Photo        string `json:"photo"`
 	Description  string `json:"description"`
