@@ -93,10 +93,10 @@ This project supports the following use cases. Each use case is documented in th
 
 ### [User Registration/Login](https://github.com/DarkhanTastanov/VoteGolang/blob/master/internals/usecases/auth_usecase.go)
 
-### [Candidates](https://github.com/DarkhanTastanov/VoteGolang/internals/blob/master/usecases/candidate_usecase.go)
+### [Candidates](https://github.com/DarkhanTastanov/VoteGolang/blob/master/internals/usecases/candidate_usecase.go)
 
-### [Petition](https://github.com/DarkhanTastanov/VoteGolang/internals/blob/master/usecases/petition_usecase.go)
+### [Petition](https://github.com/DarkhanTastanov/VoteGolang/blob/master/internals/usecases/petition_usecase.go)
 
-### [News](https://github.com/DarkhanTastanov/VoteGolang/internals/blob/master/usecases/general_news_usecase.go)
+### [News](https://github.com/DarkhanTastanov/VoteGolang/blob/master/internals/usecases/general_news_usecase.go)
 
 -
