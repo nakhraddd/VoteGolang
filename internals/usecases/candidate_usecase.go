@@ -22,7 +22,7 @@ func (uc *CandidateUseCase) GetAllByType(candidateType string) ([]data.Candidate
 	return uc.CandidateRepo.GetAllByType(candidateType)
 }
 
-func (uc *CandidateUseCase) Vote(candidateID uint, userID string, candidateType string) error {
+func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType string) error {
 	voted, err := uc.VoteRepo.HasVoted(userID, candidateType)
 	if err != nil {
 		return err

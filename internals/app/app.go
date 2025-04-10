@@ -5,10 +5,10 @@ import (
 	"VoteGolang/internals/app/connect"
 	"VoteGolang/internals/data"
 	"VoteGolang/internals/deliveries"
+	"VoteGolang/internals/handlers"
 	"VoteGolang/internals/repositories"
 	auth2 "VoteGolang/internals/services/auth"
 	"VoteGolang/internals/usecases"
-	"VoteGolang/internals/usecases/handlers"
 	"VoteGolang/pkg/domain"
 	"gorm.io/gorm"
 	"log"
@@ -67,6 +67,26 @@ func (a *App) Run(authUseCase *usecases.AuthUseCase, tokenManager domain.TokenMa
 	)
 	deliveries.RegisterCandidateRoutes(mux, candidateHandler, tokenManager)
 
+	// General News
+	generalNewsHandler := handlers.NewGeneralNewsHandler(
+		usecases.NewGeneralNewsUseCase(
+			repositories.NewGeneralNewsRepository(a.DB),
+		),
+		tokenManager.(*domain.JwtToken),
+	)
+	deliveries.RegisterGeneralNewsRoutes(mux, generalNewsHandler, tokenManager)
+
+	//Petitions
+	petitionsHandler := handlers.NewPetitionHandler(
+		usecases.NewPetitionUseCase(
+			repositories.NewPetitionRepository(a.DB),
+			repositories.NewPetitionVoteRepository(a.DB),
+		),
+		tokenManager.(*domain.JwtToken),
+	)
+	deliveries.RegisterPetitionRoutes(mux, petitionsHandler, tokenManager)
+
+	//start
 	err := http.ListenAndServe(":8080", mux)
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)

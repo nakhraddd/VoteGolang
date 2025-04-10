@@ -1,7 +1,7 @@
 package domain
 
 type Session struct {
-	ID     string
-	UserID string
+	ID     uint
+	UserID uint
 	Expiry int64
 }

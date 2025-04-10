@@ -6,8 +6,8 @@ import (
 )
 
 type VoteRepository interface {
-	HasVoted(userID string, voteType string) (bool, error)
-	SaveVote(candidateID uint, userID string, voteType string) error
+	HasVoted(userID uint, voteType string) (bool, error)
+	SaveVote(candidateID uint, userID uint, voteType string) error
 }
 
 type voteRepository struct {
@@ -18,7 +18,7 @@ func NewVoteRepository(db *gorm.DB) VoteRepository {
 	return &voteRepository{db: db}
 }
 
-func (r *voteRepository) HasVoted(userID string, voteType string) (bool, error) {
+func (r *voteRepository) HasVoted(userID uint, voteType string) (bool, error) {
 	var count int64
 	err := r.db.Model(&data.Vote{}).
 		Where("user_id = ? AND candidate_type = ?", userID, voteType).
@@ -26,7 +26,7 @@ func (r *voteRepository) HasVoted(userID string, voteType string) (bool, error) 
 	return count > 0, err
 }
 
-func (r *voteRepository) SaveVote(candidateID uint, userID string, candidateType string) error {
+func (r *voteRepository) SaveVote(candidateID uint, userID uint, candidateType string) error {
 	vote := &data.Vote{
 		CandidateID:   candidateID,
 		UserID:        userID,

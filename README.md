@@ -87,14 +87,6 @@ This project provides an online election system built with Go. The application i
   - Against
 ---
 
-# Diagrams #
-## Sequence Diagram ##
-![image](https://github.com/user-attachments/assets/bc6d875a-44da-4546-baf6-4a6c34794e94)
-
-Got it! Here’s how you can structure your **README** file to include links to the individual use cases stored in your GitHub repository:
-
----
-
 ## Use Cases
 
 This project supports the following use cases. Each use case is documented in the respective file in the GitHub repository.

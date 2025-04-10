@@ -12,8 +12,8 @@ type JwtToken struct {
 }
 
 type JwtClaims struct {
-	SessionID string `json:"sid"`
-	UserID    string `json:"uid"`
+	SessionID uint `json:"sid"`
+	UserID    uint `json:"uid"`
 	jwt.StandardClaims
 }
 
@@ -46,7 +46,7 @@ func (tk *JwtToken) Check(ctx context.Context, inputToken string) (bool, error) 
 		return false, err
 	}
 
-	if payload.SessionID == "" || payload.UserID == "" {
+	if payload.SessionID == 0 || payload.UserID == 0 {
 		return false, fmt.Errorf("invalid token claims")
 	}
 

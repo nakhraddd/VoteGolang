@@ -7,7 +7,7 @@ import (
 
 type PetitionVoteRepository interface {
 	CreateVote(vote *data.PetitionVote) error
-	HasUserVoted(userID string, petitionID uint) (bool, error)
+	HasUserVoted(userID uint, petitionID uint) (bool, error)
 }
 
 type petitionVoteRepository struct {
@@ -41,7 +41,7 @@ func (r *petitionVoteRepository) CreateVote(vote *data.PetitionVote) error {
 	})
 }
 
-func (r *petitionVoteRepository) HasUserVoted(userID string, petitionID uint) (bool, error) {
+func (r *petitionVoteRepository) HasUserVoted(userID uint, petitionID uint) (bool, error) {
 	var count int64
 	err := r.db.Model(&data.PetitionVote{}).
 		Where("user_id = ? AND petition_id = ?", userID, petitionID).

@@ -55,12 +55,12 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := payload.UserID
-	if userID == "" {
+	if userID == 0 {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	if userID == "" {
+	if userID == 0 {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}

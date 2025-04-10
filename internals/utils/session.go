@@ -2,13 +2,15 @@ package utils
 
 import (
 	"crypto/rand"
-	"encoding/hex"
+	"encoding/binary"
 )
 
-func GenerateSessionID() string {
+func GenerateSessionID() uint {
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
 		panic(err)
 	}
-	return hex.EncodeToString(bytes)
+	sessionID := binary.LittleEndian.Uint64(bytes)
+
+	return uint(sessionID)
 }

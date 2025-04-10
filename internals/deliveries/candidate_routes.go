@@ -1,8 +1,8 @@
 package deliveries
 
 import (
+	"VoteGolang/internals/handlers"
 	"VoteGolang/internals/services/auth"
-	"VoteGolang/internals/usecases/handlers"
 	"VoteGolang/pkg/domain"
 	"log"
 	"net/http"
