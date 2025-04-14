@@ -86,6 +86,13 @@ func (a *App) Run(authUseCase *usecases.AuthUseCase, tokenManager domain.TokenMa
 	)
 	deliveries.RegisterPetitionRoutes(mux, petitionsHandler, tokenManager)
 
+	// fallback for unknown routes
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"error": "route not found"}`))
+	})
+
 	//start
 	err := http.ListenAndServe(":8080", mux)
 	if err != nil {

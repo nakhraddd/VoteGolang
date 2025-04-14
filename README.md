@@ -100,3 +100,11 @@ This project supports the following use cases. Each use case is documented in th
 ### [News](https://github.com/DarkhanTastanov/VoteGolang/blob/master/internals/usecases/general_news_usecase.go)
 
 -
+# How to use
+
+### to update database if any changes(new, users, etc)
+cd C:\Users\tasta\GolandProjects\VoteGolang
+mysqldump -u root -p vote_database > db\vote_database_dump.sql
+
+### to download (download Mysql before)
+mysql -u root -p vote_database < db/vote_database_dump.sql

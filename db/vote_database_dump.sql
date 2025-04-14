@@ -33,8 +33,10 @@ CREATE TABLE `candidates` (
   `votes` int DEFAULT '0',
   `type` varchar(255) NOT NULL,
   `deleted_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -43,6 +45,7 @@ CREATE TABLE `candidates` (
 
 LOCK TABLES `candidates` WRITE;
 /*!40000 ALTER TABLE `candidates` DISABLE KEYS */;
+INSERT INTO `candidates` VALUES (1,'John Doe','john.jpg','Harvard University',52,'Democratic Party','Region A',0,'president',NULL,'2025-04-14 19:52:28','2025-04-14 19:52:28'),(2,'Jane Smith','jane.jpg','Stanford University',45,'Republican Party','Region B',0,'session_deputy',NULL,'2025-04-14 19:52:28','2025-04-14 19:52:28'),(3,'Ali Khan','ali.jpg','Oxford University',39,'Independent','Region C',0,'deputy',NULL,'2025-04-14 19:52:28','2025-04-14 19:52:28');
 /*!40000 ALTER TABLE `candidates` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -124,7 +127,7 @@ CREATE TABLE `petitions` (
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -133,6 +136,7 @@ CREATE TABLE `petitions` (
 
 LOCK TABLES `petitions` WRITE;
 /*!40000 ALTER TABLE `petitions` DISABLE KEYS */;
+INSERT INTO `petitions` VALUES (1,'1','Improve Local Roads','road.jpg','We request the government to improve the road conditions in our area.',0,0,'2025-04-14 19:49:59','2025-04-14 19:49:59',NULL);
 /*!40000 ALTER TABLE `petitions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -209,4 +213,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-04-14 19:28:26
+-- Dump completed on 2025-04-14 20:05:52

@@ -9,12 +9,6 @@ import (
 
 func LoginRegisterRoutes(mux *http.ServeMux, authHandler *auth.AuthHandler, tokenManager domain.TokenManager) {
 
-	logRequest := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			next.ServeHTTP(w, r)
-		})
-	}
-
 	//login
 	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		logLoginRegister(w, r, "/login")
@@ -25,9 +19,6 @@ func LoginRegisterRoutes(mux *http.ServeMux, authHandler *auth.AuthHandler, toke
 		logLoginRegister(w, r, "/register")
 		authHandler.Register(w, r)
 	})
-
-	//default
-	mux.Handle("/", logRequest(mux))
 }
 
 func logLoginRegister(w http.ResponseWriter, r *http.Request, route string) {
