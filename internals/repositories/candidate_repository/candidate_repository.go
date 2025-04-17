@@ -1,4 +1,4 @@
-package repositories
+package candidate_repository
 
 import (
 	"VoteGolang/internals/data"
@@ -37,5 +37,5 @@ func (r *candidateRepository) GetByID(id uint) (*data.Candidate, error) {
 func (r *candidateRepository) IncrementVote(id uint) error {
 	return r.db.Model(&data.Candidate{}).
 		Where("id = ?", id).
-		UpdateColumn("votes", gorm.Expr("votes + ?", 1)).Error
+		UpdateColumn("votes_repositories", gorm.Expr("votes_repositories + ?", 1)).Error
 }

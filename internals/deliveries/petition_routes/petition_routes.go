@@ -1,14 +1,13 @@
-package deliveries
+package petition_routes
 
 import (
-	"VoteGolang/internals/handlers"
 	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
 	"log"
 	"net/http"
 )
 
-func RegisterPetitionRoutes(mux *http.ServeMux, handler *handlers.PetitionHandler, tokenManager domain.TokenManager) {
+func RegisterPetitionRoutes(mux *http.ServeMux, handler *PetitionHandler, tokenManager domain.TokenManager) {
 	logRequest := func(route string, handlerFunc http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			token, err := utils.ExtractTokenFromRequest(r)
@@ -23,22 +22,22 @@ func RegisterPetitionRoutes(mux *http.ServeMux, handler *handlers.PetitionHandle
 	}
 
 	mux.Handle("/vote/petition/create", utils.JWTMiddleware(tokenManager)(
-		logRequest("/vote/petition/create", handler.CreatePetition),
+		logRequest("/vote/petition_repository/create", handler.CreatePetition),
 	))
 
 	mux.Handle("/vote/petition/all", utils.JWTMiddleware(tokenManager)(
-		logRequest("/vote/petition/all", handler.GetAllPetitions),
+		logRequest("/vote/petition_repository/all", handler.GetAllPetitions),
 	))
 
 	mux.Handle("/vote/petition/get", utils.JWTMiddleware(tokenManager)(
-		logRequest("/vote/petition/get", handler.GetPetitionByID),
+		logRequest("/vote/petition_repository/get", handler.GetPetitionByID),
 	))
 
 	mux.Handle("/vote/petition/vote", utils.JWTMiddleware(tokenManager)(
-		logRequest("/vote/petition/vote", handler.Vote),
+		logRequest("/vote/petition_repository/vote", handler.Vote),
 	))
 
 	mux.Handle("/vote/petition/delete", utils.JWTMiddleware(tokenManager)(
-		logRequest("/vote/petition/delete", handler.DeletePetition),
+		logRequest("/vote/petition_repository/delete", handler.DeletePetition),
 	))
 }

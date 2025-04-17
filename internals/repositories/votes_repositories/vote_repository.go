@@ -1,4 +1,4 @@
-package repositories
+package votes_repositories
 
 import (
 	"VoteGolang/internals/data"

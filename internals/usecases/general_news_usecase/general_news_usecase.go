@@ -1,15 +1,15 @@
-package usecases
+package general_news_usecase
 
 import (
 	"VoteGolang/internals/data"
-	"VoteGolang/internals/repositories"
+	"VoteGolang/internals/repositories/general_news_repository"
 )
 
 type GeneralNewsUseCase struct {
-	Repo repositories.GeneralNewsRepository
+	Repo general_news_repository.GeneralNewsRepository
 }
 
-func NewGeneralNewsUseCase(repo repositories.GeneralNewsRepository) *GeneralNewsUseCase {
+func NewGeneralNewsUseCase(repo general_news_repository.GeneralNewsRepository) *GeneralNewsUseCase {
 	return &GeneralNewsUseCase{Repo: repo}
 }
 

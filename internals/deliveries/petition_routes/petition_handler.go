@@ -1,8 +1,8 @@
-package handlers
+package petition_routes
 
 import (
 	"VoteGolang/internals/data"
-	"VoteGolang/internals/usecases"
+	"VoteGolang/internals/usecases/petittion_usecase"
 	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
 	"encoding/json"
@@ -12,11 +12,11 @@ import (
 )
 
 type PetitionHandler struct {
-	usecase      usecases.PetitionUseCase
+	usecase      petittion_usecase.PetitionUseCase
 	TokenManager *domain.JwtToken
 }
 
-func NewPetitionHandler(usecase usecases.PetitionUseCase, tokenManager *domain.JwtToken) *PetitionHandler {
+func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager *domain.JwtToken) *PetitionHandler {
 	return &PetitionHandler{
 		usecase:      usecase,
 		TokenManager: tokenManager,

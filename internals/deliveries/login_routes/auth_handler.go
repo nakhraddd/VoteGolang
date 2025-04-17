@@ -1,19 +1,19 @@
-package handlers
+package login_routes
 
 import (
 	"VoteGolang/internals/data"
-	"VoteGolang/internals/usecases"
+	"VoteGolang/internals/usecases/auth_usecase"
 	"VoteGolang/pkg/domain"
 	"encoding/json"
 	"net/http"
 )
 
 type AuthHandler struct {
-	authUseCase  *usecases.AuthUseCase
+	authUseCase  *auth_usecase.AuthUseCase
 	tokenManager domain.TokenManager
 }
 
-func NewAuthHandler(authUseCase *usecases.AuthUseCase, tokenManager domain.TokenManager) *AuthHandler {
+func NewAuthHandler(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.TokenManager) *AuthHandler {
 	return &AuthHandler{
 		authUseCase:  authUseCase,
 		tokenManager: tokenManager,
@@ -51,7 +51,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	err := h.authUseCase.Register(&req)
 	if err != nil {
-		http.Error(w, "Failed to register user: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to register user_repository: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 

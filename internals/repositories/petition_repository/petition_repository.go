@@ -1,4 +1,4 @@
-package repositories
+package petition_repository
 
 import (
 	"VoteGolang/internals/data"

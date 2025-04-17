@@ -4,10 +4,19 @@ import (
 	"VoteGolang/internals/app/conf"
 	"VoteGolang/internals/app/connect"
 	"VoteGolang/internals/data"
-	"VoteGolang/internals/deliveries"
-	"VoteGolang/internals/handlers"
-	"VoteGolang/internals/repositories"
-	"VoteGolang/internals/usecases"
+	"VoteGolang/internals/deliveries/candidate_routes"
+	"VoteGolang/internals/deliveries/general_news_routes"
+	"VoteGolang/internals/deliveries/login_routes"
+	"VoteGolang/internals/deliveries/petition_routes"
+	candidate_repo "VoteGolang/internals/repositories/candidate_repository"
+	general_news3 "VoteGolang/internals/repositories/general_news_repository"
+	petition3 "VoteGolang/internals/repositories/petition_repository"
+	"VoteGolang/internals/repositories/user_repository"
+	"VoteGolang/internals/repositories/votes_repositories"
+	"VoteGolang/internals/usecases/auth_usecase"
+	"VoteGolang/internals/usecases/candidate_usecase"
+	"VoteGolang/internals/usecases/general_news_usecase"
+	"VoteGolang/internals/usecases/petittion_usecase"
 	"VoteGolang/pkg/domain"
 	"gorm.io/gorm"
 	"log"
@@ -19,7 +28,7 @@ type App struct {
 	DB     *gorm.DB
 }
 
-func NewApp() (*App, *usecases.AuthUseCase, domain.TokenManager, error) {
+func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
 	config := conf.LoadConfig()
 	db, err := connect.ConnectDB(config)
 
@@ -36,20 +45,20 @@ func NewApp() (*App, *usecases.AuthUseCase, domain.TokenManager, error) {
 		DB:     db,
 	}
 
-	userRepo := repositories.NewUserRepository(db)
+	userRepo := user_repository.NewUserRepository(db)
 	tokenManager := domain.NewJwtToken(config.JWTSecret)
-	authUseCase := usecases.NewAuthUseCase(userRepo, tokenManager)
+	authUseCase := auth_usecase.NewAuthUseCase(userRepo, tokenManager)
 
 	return app, authUseCase, tokenManager, nil
 }
 
-func (a *App) Run(authUseCase *usecases.AuthUseCase, tokenManager domain.TokenManager) {
+func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.TokenManager) {
 	log.Println("Starting server on port 8080...")
 
 	mux := http.NewServeMux()
 	//auth
-	authHandler := handlers.NewAuthHandler(authUseCase, tokenManager)
-	deliveries.LoginRegisterRoutes(mux, authHandler, tokenManager)
+	authHandler := login_routes.NewAuthHandler(authUseCase, tokenManager)
+	login_routes.AuthorizationRoutes(mux, authHandler, tokenManager)
 
 	_, ok := tokenManager.(domain.TokenManager)
 	if !ok {
@@ -57,33 +66,33 @@ func (a *App) Run(authUseCase *usecases.AuthUseCase, tokenManager domain.TokenMa
 	}
 
 	// Candidate
-	candidateHandler := handlers.NewCandidateHandler(
-		usecases.NewCandidateUseCase(
-			repositories.NewCandidateRepository(a.DB),
-			repositories.NewVoteRepository(a.DB),
+	candidateHandler := candidate_routes.NewCandidateHandler(
+		candidate_usecase.NewCandidateUseCase(
+			candidate_repo.NewCandidateRepository(a.DB),
+			votes_repositories.NewVoteRepository(a.DB),
 		),
 		tokenManager.(*domain.JwtToken),
 	)
-	deliveries.RegisterCandidateRoutes(mux, candidateHandler, tokenManager)
+	candidate_routes.RegisterCandidateRoutes(mux, candidateHandler, tokenManager)
 
 	// General News
-	generalNewsHandler := handlers.NewGeneralNewsHandler(
-		usecases.NewGeneralNewsUseCase(
-			repositories.NewGeneralNewsRepository(a.DB),
+	generalNewsHandler := general_news_routes.NewGeneralNewsHandler(
+		general_news_usecase.NewGeneralNewsUseCase(
+			general_news3.NewGeneralNewsRepository(a.DB),
 		),
 		tokenManager.(*domain.JwtToken),
 	)
-	deliveries.RegisterGeneralNewsRoutes(mux, generalNewsHandler, tokenManager)
+	general_news_routes.RegisterGeneralNewsRoutes(mux, generalNewsHandler, tokenManager)
 
 	//Petitions
-	petitionsHandler := handlers.NewPetitionHandler(
-		usecases.NewPetitionUseCase(
-			repositories.NewPetitionRepository(a.DB),
-			repositories.NewPetitionVoteRepository(a.DB),
+	petitionsHandler := petition_routes.NewPetitionHandler(
+		petittion_usecase.NewPetitionUseCase(
+			petition3.NewPetitionRepository(a.DB),
+			votes_repositories.NewPetitionVoteRepository(a.DB),
 		),
 		tokenManager.(*domain.JwtToken),
 	)
-	deliveries.RegisterPetitionRoutes(mux, petitionsHandler, tokenManager)
+	petition_routes.RegisterPetitionRoutes(mux, petitionsHandler, tokenManager)
 
 	// fallback for unknown routes
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

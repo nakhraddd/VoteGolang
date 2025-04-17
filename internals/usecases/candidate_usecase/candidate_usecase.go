@@ -1,17 +1,18 @@
-package usecases
+package candidate_usecase
 
 import (
 	"VoteGolang/internals/data"
-	"VoteGolang/internals/repositories"
+	"VoteGolang/internals/repositories/candidate_repository"
+	"VoteGolang/internals/repositories/votes_repositories"
 	"errors"
 )
 
 type CandidateUseCase struct {
-	CandidateRepo repositories.CandidateRepository
-	VoteRepo      repositories.VoteRepository
+	CandidateRepo candidate_repository.CandidateRepository
+	VoteRepo      votes_repositories.VoteRepository
 }
 
-func NewCandidateUseCase(cRepo repositories.CandidateRepository, vRepo repositories.VoteRepository) *CandidateUseCase {
+func NewCandidateUseCase(cRepo candidate_repository.CandidateRepository, vRepo votes_repositories.VoteRepository) *CandidateUseCase {
 	return &CandidateUseCase{
 		CandidateRepo: cRepo,
 		VoteRepo:      vRepo,

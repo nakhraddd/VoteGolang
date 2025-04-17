@@ -1,8 +1,8 @@
-package handlers
+package general_news_routes
 
 import (
 	"VoteGolang/internals/data"
-	"VoteGolang/internals/usecases"
+	"VoteGolang/internals/usecases/general_news_usecase"
 	"VoteGolang/pkg/domain"
 	"encoding/json"
 	"net/http"
@@ -10,11 +10,11 @@ import (
 )
 
 type GeneralNewsHandler struct {
-	UseCase      *usecases.GeneralNewsUseCase
+	UseCase      *general_news_usecase.GeneralNewsUseCase
 	TokenManager *domain.JwtToken
 }
 
-func NewGeneralNewsHandler(uc *usecases.GeneralNewsUseCase, tokenManager *domain.JwtToken) *GeneralNewsHandler {
+func NewGeneralNewsHandler(uc *general_news_usecase.GeneralNewsUseCase, tokenManager *domain.JwtToken) *GeneralNewsHandler {
 	return &GeneralNewsHandler{
 		UseCase:      uc,
 		TokenManager: tokenManager,

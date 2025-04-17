@@ -1,8 +1,9 @@
-package usecases
+package petittion_usecase
 
 import (
 	"VoteGolang/internals/data"
-	"VoteGolang/internals/repositories"
+	"VoteGolang/internals/repositories/petition_repository"
+	"VoteGolang/internals/repositories/votes_repositories"
 )
 
 type PetitionUseCase interface {
@@ -15,11 +16,11 @@ type PetitionUseCase interface {
 }
 
 type petitionUseCase struct {
-	petitionRepo     repositories.PetitionRepository
-	petitionVoteRepo repositories.PetitionVoteRepository
+	petitionRepo     petition_repository.PetitionRepository
+	petitionVoteRepo votes_repositories.PetitionVoteRepository
 }
 
-func NewPetitionUseCase(pr repositories.PetitionRepository, pvr repositories.PetitionVoteRepository) PetitionUseCase {
+func NewPetitionUseCase(pr petition_repository.PetitionRepository, pvr votes_repositories.PetitionVoteRepository) PetitionUseCase {
 	return &petitionUseCase{
 		petitionRepo:     pr,
 		petitionVoteRepo: pvr,
@@ -44,7 +45,7 @@ func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType string) e
 		return err
 	}
 	if voted {
-		return nil // or custom error like: errors.New("user already voted")
+		return nil // or custom error like: errors.New("user_repository already voted")
 	}
 
 	vote := &data.PetitionVote{

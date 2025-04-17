@@ -1,7 +1,7 @@
-package handlers
+package candidate_routes
 
 import (
-	"VoteGolang/internals/usecases"
+	"VoteGolang/internals/usecases/candidate_usecase"
 	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
 	"encoding/json"
@@ -11,11 +11,11 @@ import (
 )
 
 type CandidateHandler struct {
-	UseCase      *usecases.CandidateUseCase
+	UseCase      *candidate_usecase.CandidateUseCase
 	TokenManager *domain.JwtToken
 }
 
-func NewCandidateHandler(uc *usecases.CandidateUseCase, tokenManager *domain.JwtToken) *CandidateHandler {
+func NewCandidateHandler(uc *candidate_usecase.CandidateUseCase, tokenManager *domain.JwtToken) *CandidateHandler {
 	return &CandidateHandler{
 		UseCase:      uc,
 		TokenManager: tokenManager,

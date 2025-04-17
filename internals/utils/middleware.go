@@ -69,7 +69,7 @@ func ExtractUserIDFromToken(token string, secret []byte) (string, error) {
 	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
 		userID, ok := claims["sub"].(string)
 		if !ok {
-			return "", errors.New("user ID not found in token")
+			return "", errors.New("user_repository ID not found in token")
 		}
 		return userID, nil
 	}

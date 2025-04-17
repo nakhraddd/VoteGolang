@@ -1,14 +1,13 @@
-package deliveries
+package candidate_routes
 
 import (
-	"VoteGolang/internals/handlers"
 	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
 	"log"
 	"net/http"
 )
 
-func RegisterCandidateRoutes(mux *http.ServeMux, handler *handlers.CandidateHandler, tokenManager domain.TokenManager) {
+func RegisterCandidateRoutes(mux *http.ServeMux, handler *CandidateHandler, tokenManager domain.TokenManager) {
 	logRequest := func(route string, handlerFunc http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			token, err := utils.ExtractTokenFromRequest(r)

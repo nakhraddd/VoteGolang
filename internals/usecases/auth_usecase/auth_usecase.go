@@ -1,8 +1,8 @@
-package usecases
+package auth_usecase
 
 import (
 	"VoteGolang/internals/data"
-	"VoteGolang/internals/repositories"
+	"VoteGolang/internals/repositories/user_repository"
 	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
 	"fmt"
@@ -10,11 +10,11 @@ import (
 )
 
 type AuthUseCase struct {
-	UserRepo     repositories.UserRepository
+	UserRepo     user_repository.UserRepository
 	TokenManager domain.TokenManager
 }
 
-func NewAuthUseCase(userRepo repositories.UserRepository, tm domain.TokenManager) *AuthUseCase {
+func NewAuthUseCase(userRepo user_repository.UserRepository, tm domain.TokenManager) *AuthUseCase {
 	return &AuthUseCase{
 		UserRepo:     userRepo,
 		TokenManager: tm,
@@ -24,7 +24,7 @@ func NewAuthUseCase(userRepo repositories.UserRepository, tm domain.TokenManager
 func (a *AuthUseCase) Login(username, password string) (string, error) {
 	user, err := a.UserRepo.GetByUsername(username)
 	if err != nil {
-		return "", fmt.Errorf("user not found")
+		return "", fmt.Errorf("user_repository not found")
 	}
 
 	if !utils.CheckPasswordHash(password, user.Password) {
@@ -53,7 +53,7 @@ func (a *AuthUseCase) Register(user *data.User) error {
 
 	err = a.UserRepo.Create(user)
 	if err != nil {
-		return fmt.Errorf("failed to register user: %v", err)
+		return fmt.Errorf("failed to register user_repository: %v", err)
 	}
 
 	return nil

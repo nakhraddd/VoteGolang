@@ -1,4 +1,4 @@
-package repositories
+package general_news_repository
 
 import (
 	"VoteGolang/internals/data"
