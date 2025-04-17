@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"VoteGolang/internals/services/auth"
 	"VoteGolang/internals/usecases"
+	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
 	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
@@ -39,7 +39,7 @@ func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.ExtractTokenFromRequest(r)
+	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {
 		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
 		return

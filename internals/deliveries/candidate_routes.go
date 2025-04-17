@@ -2,7 +2,7 @@ package deliveries
 
 import (
 	"VoteGolang/internals/handlers"
-	"VoteGolang/internals/services/auth"
+	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
 	"log"
 	"net/http"
@@ -11,7 +11,7 @@ import (
 func RegisterCandidateRoutes(mux *http.ServeMux, handler *handlers.CandidateHandler, tokenManager domain.TokenManager) {
 	logRequest := func(route string, handlerFunc http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			token, err := auth.ExtractTokenFromRequest(r)
+			token, err := utils.ExtractTokenFromRequest(r)
 			if err != nil {
 				log.Printf("Failed to extract token: %v", err)
 			} else {
@@ -22,11 +22,11 @@ func RegisterCandidateRoutes(mux *http.ServeMux, handler *handlers.CandidateHand
 		}
 	}
 
-	mux.Handle("/candidates", auth.JWTMiddleware(tokenManager)(
+	mux.Handle("/candidates", utils.JWTMiddleware(tokenManager)(
 		logRequest("/candidates", handler.GetAll),
 	))
 
-	mux.Handle("/vote", auth.JWTMiddleware(tokenManager)(
+	mux.Handle("/vote", utils.JWTMiddleware(tokenManager)(
 		logRequest("/vote", handler.Vote),
 	))
 }

@@ -1,13 +1,13 @@
 package deliveries
 
 import (
-	"VoteGolang/internals/services/auth"
+	"VoteGolang/internals/handlers"
 	"VoteGolang/pkg/domain"
 	"log"
 	"net/http"
 )
 
-func LoginRegisterRoutes(mux *http.ServeMux, authHandler *auth.AuthHandler, tokenManager domain.TokenManager) {
+func LoginRegisterRoutes(mux *http.ServeMux, authHandler *handlers.AuthHandler, tokenManager domain.TokenManager) {
 
 	//login
 	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {

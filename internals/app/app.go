@@ -7,7 +7,6 @@ import (
 	"VoteGolang/internals/deliveries"
 	"VoteGolang/internals/handlers"
 	"VoteGolang/internals/repositories"
-	auth2 "VoteGolang/internals/services/auth"
 	"VoteGolang/internals/usecases"
 	"VoteGolang/pkg/domain"
 	"gorm.io/gorm"
@@ -49,7 +48,7 @@ func (a *App) Run(authUseCase *usecases.AuthUseCase, tokenManager domain.TokenMa
 
 	mux := http.NewServeMux()
 	//auth
-	authHandler := auth2.NewAuthHandler(authUseCase, tokenManager)
+	authHandler := handlers.NewAuthHandler(authUseCase, tokenManager)
 	deliveries.LoginRegisterRoutes(mux, authHandler, tokenManager)
 
 	_, ok := tokenManager.(domain.TokenManager)

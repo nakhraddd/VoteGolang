@@ -2,7 +2,7 @@ package deliveries
 
 import (
 	"VoteGolang/internals/handlers"
-	"VoteGolang/internals/services/auth"
+	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
 	"log"
 	"net/http"
@@ -11,7 +11,7 @@ import (
 func RegisterGeneralNewsRoutes(mux *http.ServeMux, handler *handlers.GeneralNewsHandler, tokenManager domain.TokenManager) {
 	logRequest := func(route string, handlerFunc http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			token, err := auth.ExtractTokenFromRequest(r)
+			token, err := utils.ExtractTokenFromRequest(r)
 			if err != nil {
 				log.Printf("Failed to extract token: %v", err)
 			} else {
@@ -21,21 +21,21 @@ func RegisterGeneralNewsRoutes(mux *http.ServeMux, handler *handlers.GeneralNews
 		}
 	}
 
-	mux.Handle("/general_news", auth.JWTMiddleware(tokenManager)(
+	mux.Handle("/general_news", utils.JWTMiddleware(tokenManager)(
 		logRequest("/general_news", handler.GetAll),
 	))
-	mux.Handle("/general_news/get", auth.JWTMiddleware(tokenManager)(
+	mux.Handle("/general_news/get", utils.JWTMiddleware(tokenManager)(
 		logRequest("/general_news/get", handler.GetByID),
 	))
-	mux.Handle("/general_news/create", auth.JWTMiddleware(tokenManager)(
+	mux.Handle("/general_news/create", utils.JWTMiddleware(tokenManager)(
 		logRequest("/general_news/create", handler.Create),
 	))
 
-	mux.Handle("/general_news/update", auth.JWTMiddleware(tokenManager)(
+	mux.Handle("/general_news/update", utils.JWTMiddleware(tokenManager)(
 		logRequest("/general_news/update", handler.Update),
 	))
 
-	mux.Handle("/general_news/delete", auth.JWTMiddleware(tokenManager)(
+	mux.Handle("/general_news/delete", utils.JWTMiddleware(tokenManager)(
 		logRequest("/general_news/delete", handler.Delete),
 	))
 }

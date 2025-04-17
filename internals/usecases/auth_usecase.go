@@ -3,7 +3,6 @@ package usecases
 import (
 	"VoteGolang/internals/data"
 	"VoteGolang/internals/repositories"
-	"VoteGolang/internals/security"
 	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
 	"fmt"
@@ -28,7 +27,7 @@ func (a *AuthUseCase) Login(username, password string) (string, error) {
 		return "", fmt.Errorf("user not found")
 	}
 
-	if !security.CheckPasswordHash(password, user.Password) {
+	if !utils.CheckPasswordHash(password, user.Password) {
 		return "", fmt.Errorf("invalid credentials")
 	}
 
@@ -46,7 +45,7 @@ func (a *AuthUseCase) Login(username, password string) (string, error) {
 }
 
 func (a *AuthUseCase) Register(user *data.User) error {
-	hashedPassword, err := security.HashPassword(user.Password)
+	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %v", err)
 	}

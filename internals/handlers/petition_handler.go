@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"VoteGolang/internals/data"
-	"VoteGolang/internals/services/auth"
 	"VoteGolang/internals/usecases"
+	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
 	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
@@ -24,7 +24,7 @@ func NewPetitionHandler(usecase usecases.PetitionUseCase, tokenManager *domain.J
 }
 
 func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.ExtractTokenFromRequest(r)
+	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {
 		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
 		return
@@ -88,7 +88,7 @@ func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request
 }
 
 func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.ExtractTokenFromRequest(r)
+	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {
 		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
 		return
@@ -128,7 +128,7 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PetitionHandler) DeletePetition(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.ExtractTokenFromRequest(r)
+	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {
 		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
 		return
