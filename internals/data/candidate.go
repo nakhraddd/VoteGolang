@@ -1,16 +1,21 @@
 package data
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 type Candidate struct {
-	gorm.Model
-	ID        uint   `gorm:"primarykey"`
-	Name      string `json:"name"`
-	Photo     string `json:"photo"`
-	Education string `json:"education"`
-	Age       int    `json:"age"`
-	Party     string `json:"party"`
-	Region    string `json:"region"`
-	Votes     int    `json:"votes_repositories" gorm:"default:0"`
-	Type      string `json:"candidate_type"`
+	ID        uint    `gorm:"primaryKey;autoIncrement"`
+	Name      string  `gorm:"type:varchar(255);not null"`
+	Photo     *string `gorm:"type:varchar(255)"`
+	Education *string `gorm:"type:varchar(255)"`
+	Age       int     `gorm:"not null"`
+	Party     *string `gorm:"type:varchar(255)"`
+	Region    *string `gorm:"type:varchar(255)"`
+	Votes     int     `gorm:"default:0"`
+	Type      string  `gorm:"type:varchar(255);not null"`
+	DeletedAt gorm.DeletedAt
+	CreatedAt time.Time `gorm:"autoCreateTime"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }

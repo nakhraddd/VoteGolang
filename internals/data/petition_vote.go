@@ -1,11 +1,16 @@
 package data
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 type PetitionVote struct {
-	gorm.Model
-	ID         uint   `gorm:"primaryKey;autoIncrement"`
-	UserID     uint   `json:"user_id"`
-	PetitionID uint   `json:"petition_id"`
-	VoteType   string `json:"vote_type"`
+	ID         uint `gorm:"primaryKey;autoIncrement"`
+	UserID     uint `gorm:"type:varchar(255);not null"`
+	PetitionID uint
+	VoteType   string `gorm:"type:varchar(255);not null"`
+	DeletedAt  gorm.DeletedAt
+	CreatedAt  time.Time `gorm:"autoCreateTime"`
+	UpdatedAt  time.Time `gorm:"autoUpdateTime"`
 }

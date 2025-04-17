@@ -3,7 +3,7 @@ package app
 import (
 	"VoteGolang/internals/app/conf"
 	"VoteGolang/internals/app/connect"
-	"VoteGolang/internals/data"
+	"VoteGolang/internals/app/migrations"
 	"VoteGolang/internals/deliveries/candidate_routes"
 	"VoteGolang/internals/deliveries/general_news_routes"
 	"VoteGolang/internals/deliveries/login_routes"
@@ -35,11 +35,13 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	//
-	//err = MigrateAllTables(db)
-	//if err != nil {
-	//	return nil, nil, nil, err
-	//}
+
+	// Now db has logging enabled — no need for db = db.Debug()
+	err = migrations.MigrateAllTables(db)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	app := &App{
 		Config: config,
 		DB:     db,
@@ -106,20 +108,4 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
-}
-
-func MigrateAllTables(db *gorm.DB) error {
-	err := db.AutoMigrate(
-		&data.User{},
-		&data.Candidate{},
-		&data.GeneralNews{},
-		&data.Petition{},
-		&data.PetitionVote{},
-		&data.Vote{},
-	)
-	if err != nil {
-		return err
-	}
-	log.Println("Database tables migrated successfully")
-	return nil
 }
