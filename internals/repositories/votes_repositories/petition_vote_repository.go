@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// PetitionVoteRepository manages voting data for petitions.
 type PetitionVoteRepository interface {
 	CreateVote(vote *data.PetitionVote) error
 	HasUserVoted(userID uint, petitionID uint) (bool, error)

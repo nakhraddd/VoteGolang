@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Candidate represents a candidate for election.
 type Candidate struct {
 	ID        uint    `gorm:"primaryKey;autoIncrement"`
 	Name      string  `gorm:"type:varchar(255);not null"`

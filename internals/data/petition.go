@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Petition represents a created petition.
 type Petition struct {
 	ID           uint    `gorm:"primaryKey;autoIncrement"`
 	UserID       uint    `gorm:"type:varchar(255);not null"`

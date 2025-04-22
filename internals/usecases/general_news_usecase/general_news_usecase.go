@@ -5,6 +5,7 @@ import (
 	"VoteGolang/internals/repositories/general_news_repository"
 )
 
+// GeneralNewsUseCase handles logic for retrieving general election news.
 type GeneralNewsUseCase struct {
 	Repo general_news_repository.GeneralNewsRepository
 }
@@ -17,6 +18,7 @@ func (uc *GeneralNewsUseCase) Create(news *data.GeneralNews) error {
 	return uc.Repo.Create(news)
 }
 
+// GetAll returns a list of general news articles.
 func (uc *GeneralNewsUseCase) GetAll() ([]data.GeneralNews, error) {
 	return uc.Repo.GetAll()
 }

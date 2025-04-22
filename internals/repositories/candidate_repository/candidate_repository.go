@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// CandidateRepository retrieves candidate data.
 type CandidateRepository interface {
 	GetAllByType(candidateType string) ([]data.Candidate, error)
 	GetByID(id uint) (*data.Candidate, error)

@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// VoteRepository manages voting data for candidates.
 type VoteRepository interface {
 	HasVoted(userID uint, voteType string) (bool, error)
 	SaveVote(candidateID uint, userID uint, voteType string) error

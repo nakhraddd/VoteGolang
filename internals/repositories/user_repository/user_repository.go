@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// UserRepository handles database operations related to users.
 type UserRepository interface {
 	Create(user *data.User) error
 	GetByID(id string) (*data.User, error)

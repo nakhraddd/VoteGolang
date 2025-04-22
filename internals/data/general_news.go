@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// GeneralNews represents a general news article.
 type GeneralNews struct {
 	ID        uint    `gorm:"primaryKey;autoIncrement"`
 	Title     string  `gorm:"type:varchar(255);not null"`

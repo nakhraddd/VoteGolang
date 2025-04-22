@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// AuthUseCase handles authentication and authorization logic.
 type AuthUseCase struct {
 	UserRepo     user_repository.UserRepository
 	TokenManager domain.TokenManager
@@ -21,6 +22,7 @@ func NewAuthUseCase(userRepo user_repository.UserRepository, tm domain.TokenMana
 	}
 }
 
+// Login authenticates a user and returns a JWT access token.
 func (a *AuthUseCase) Login(username, password string) (string, error) {
 	user, err := a.UserRepo.GetByUsername(username)
 	if err != nil {
@@ -44,6 +46,7 @@ func (a *AuthUseCase) Login(username, password string) (string, error) {
 	return token, nil
 }
 
+// Register registers a new user with a hashed password.
 func (a *AuthUseCase) Register(user *data.User) error {
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {

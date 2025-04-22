@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Vote represents a vote on a candidate.
 type Vote struct {
 	ID            uint   `gorm:"primaryKey;autoIncrement"`
 	UserID        uint   `gorm:"not null"`

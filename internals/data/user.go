@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// User represents a registered user in the system.
 type User struct {
 	ID           uint    `gorm:"primaryKey;autoIncrement"`
 	Username     string  `gorm:"type:varchar(100);not null;unique"`

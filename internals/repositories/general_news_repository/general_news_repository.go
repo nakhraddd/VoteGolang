@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// GeneralNewsRepository retrieves general news articles.
 type GeneralNewsRepository interface {
 	Create(news *data.GeneralNews) error
 	GetAll() ([]data.GeneralNews, error)

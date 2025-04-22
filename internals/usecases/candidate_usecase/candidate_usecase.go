@@ -7,6 +7,7 @@ import (
 	"errors"
 )
 
+// CandidateUseCase handles business logic related to election candidates.
 type CandidateUseCase struct {
 	CandidateRepo candidate_repository.CandidateRepository
 	VoteRepo      votes_repositories.VoteRepository
@@ -19,10 +20,12 @@ func NewCandidateUseCase(cRepo candidate_repository.CandidateRepository, vRepo v
 	}
 }
 
+// GetAllByType returns a list of candidates filtered by type.
 func (uc *CandidateUseCase) GetAllByType(candidateType string) ([]data.Candidate, error) {
 	return uc.CandidateRepo.GetAllByType(candidateType)
 }
 
+// Vote votes for candidate by type, user_id, candidate_id.
 func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType string) error {
 	voted, err := uc.VoteRepo.HasVoted(userID, candidateType)
 	if err != nil {

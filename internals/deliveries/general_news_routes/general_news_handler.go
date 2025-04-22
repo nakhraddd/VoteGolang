@@ -35,6 +35,12 @@ func (h *GeneralNewsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(news)
 }
 
+// @Summary Get general news
+// @Tags News
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} News
+// @Router /general_news [get]
 func (h *GeneralNewsHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	newsList, err := h.UseCase.GetAll()
 	if err != nil {

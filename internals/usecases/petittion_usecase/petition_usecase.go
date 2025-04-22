@@ -6,8 +6,11 @@ import (
 	"VoteGolang/internals/repositories/votes_repositories"
 )
 
+// PetitionUseCase manages petition creation and retrieval.
 type PetitionUseCase interface {
+	// CreatePetition allows a user to create a new petition.
 	CreatePetition(p *data.Petition) error
+	// GetAllPetitions returns all active petitions.
 	GetAllPetitions() ([]data.Petition, error)
 	GetPetitionByID(id uint) (*data.Petition, error)
 	Vote(userID uint, petitionID uint, voteType string) error

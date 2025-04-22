@@ -23,6 +23,14 @@ func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager 
 	}
 }
 
+// @Summary Create a petition
+// @Tags Petition
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param petition body PetitionRequest true "Petition Data"
+// @Success 200 {string} string "Petition created"
+// @Router /petition/create [post]
 func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request) {
 	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {
@@ -62,6 +70,12 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(p)
 }
 
+// @Summary Get all petitions
+// @Tags Petition
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} Petition
+// @Router /petition/all [get]
 func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request) {
 	petitions, err := h.usecase.GetAllPetitions()
 	if err != nil {
@@ -71,6 +85,15 @@ func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(petitions)
 }
 
+// @Summary Vote on a petition
+// @Tags Petition
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param petitionVote body PetitionVoteRequest true "Petition vote data"
+// @Success 200 {string} string "Voted on petition"
+// @Failure 400 {string} string "Bad Request"
+// @Router /vote/petition/vote [post]
 func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
@@ -109,16 +132,12 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var input struct {
-		PetitionID uint   `json:"petition_id"`
-		VoteType   string `json:"vote_type"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&data.Input); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = h.usecase.Vote(userID, input.PetitionID, input.VoteType)
+	err = h.usecase.Vote(userID, data.Input.PetitionID, data.Input.VoteType)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

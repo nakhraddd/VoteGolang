@@ -20,6 +20,14 @@ func NewAuthHandler(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.T
 	}
 }
 
+// @Summary Login and get access token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param credentials body AuthRequest true "Username and Password"
+// @Success 200 {object} token
+// @Failure 401 {string} string "Unauthorized"
+// @Router /login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
@@ -41,6 +49,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"token": token})
 }
 
+// @Summary Register a new user
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param credentials body AuthRequest true "Username and Password"
+// @Success 200 {string} string "User registered successfully"
+// @Failure 400 {string} string "Invalid Request"
+// @Router /register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req data.User
 

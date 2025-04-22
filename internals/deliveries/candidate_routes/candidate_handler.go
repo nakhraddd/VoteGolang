@@ -1,6 +1,7 @@
 package candidate_routes
 
 import (
+	"VoteGolang/internals/data"
 	"VoteGolang/internals/usecases/candidate_usecase"
 	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
@@ -22,6 +23,13 @@ func NewCandidateHandler(uc *candidate_usecase.CandidateUseCase, tokenManager *d
 	}
 }
 
+// @Summary Get candidates by type
+// @Tags Candidates
+// @Produce json
+// @Param type query string true "Candidate Type"
+// @Security BearerAuth
+// @Success 200 {array} Candidate
+// @Router /candidates [get]
 func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	typ := r.URL.Query().Get("type")
 	if typ == "" {
@@ -38,6 +46,15 @@ func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(candidates)
 }
 
+// @Summary Vote for a candidate
+// @Tags Vote
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param vote body VoteRequest true "Candidate vote data"
+// @Success 200 {string} string "Vote cast successfully"
+// @Failure 400 {string} string "Bad Request"
+// @Router /vote [post]
 func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {
@@ -67,12 +84,7 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("User ID from token: %s", userID)
 
-	type voteRequest struct {
-		CandidateID   uint   `json:"candidate_id"`
-		CandidateType string `json:"candidate_type"`
-	}
-
-	var req voteRequest
+	var req data.VoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request format", http.StatusBadRequest)
 		return
