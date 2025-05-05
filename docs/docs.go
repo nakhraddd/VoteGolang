@@ -280,7 +280,7 @@ const docTemplate = `{
                 "summary": "Vote for a candidate",
                 "parameters": [
                     {
-                        "description": "Candidate petition_data data",
+                        "description": "Candidate vote data",
                         "name": "candidate_data",
                         "in": "body",
                         "required": true,
@@ -384,7 +384,8 @@ const docTemplate = `{
                         "presidential",
                         "deputy",
                         "manager"
-                    ]
+                    ],
+                    "example": "presidential, deputy, manager"
                 }
             }
         },
@@ -418,12 +419,13 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "vote_type": {
+                    "description": "Enum values: favor, against",
                     "allOf": [
                         {
                             "$ref": "#/definitions/petition_data.VoteType"
                         }
                     ],
-                    "example": "favor"
+                    "example": "favor, against"
                 }
             }
         },

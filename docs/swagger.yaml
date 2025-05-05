@@ -49,6 +49,7 @@ definitions:
         - presidential
         - deputy
         - manager
+        example: presidential, deputy, manager
         type: string
     type: object
   petition_data.Petition:
@@ -73,7 +74,8 @@ definitions:
       vote_type:
         allOf:
         - $ref: '#/definitions/petition_data.VoteType'
-        example: favor
+        description: 'Enum values: favor, against'
+        example: favor, against
     type: object
   petition_data.VoteType:
     enum:
@@ -249,7 +251,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Candidate petition_data data
+      - description: Candidate vote data
         in: body
         name: candidate_data
         required: true
