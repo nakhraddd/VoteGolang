@@ -1,7 +1,7 @@
 package petition_routes
 
 import (
-	"VoteGolang/internals/data"
+	"VoteGolang/internals/data/petition_data"
 	"VoteGolang/internals/usecases/petittion_usecase"
 	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
@@ -9,6 +9,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type PetitionHandler struct {
@@ -23,14 +24,14 @@ func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager 
 	}
 }
 
-// @Summary Create a petition
+// @Summary Create a petition_data
 // @Tags Petition
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param petition body data.Petition true "Petition Data"
+// @Param petition_data body data.Petition true "Petition Data"
 // @Success 200 {string} string "Petition created"
-// @Router /petition/create [post]
+// @Router /petition_data/create [post]
 func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request) {
 	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {
@@ -54,7 +55,7 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var p data.Petition
+	var p petition_data.Petition
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -75,7 +76,7 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {array} data.Petition
-// @Router /petition/all [get]
+// @Router /petition_data/all [get]
 func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request) {
 	petitions, err := h.usecase.GetAllPetitions()
 	if err != nil {
@@ -101,15 +102,15 @@ func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(petition)
 }
 
-// @Summary Vote on a petition
+// @Summary Vote on a petition_data
 // @Tags Petition
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param petitionVote body data.PetitionVoteRequest true "Petition vote data"
-// @Success 200 {string} string "Voted on petition"
+// @Param petitionVote body data.PetitionVoteRequest true "Petition petition_data data"
+// @Success 200 {string} string "Voted on petition_data"
 // @Failure 400 {string} string "Bad Request"
-// @Router /petition/vote [post]
+// @Router /petition_data/petition_data [post]
 func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {
@@ -132,9 +133,26 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var voteReq data.PetitionVoteRequest
+	var voteReq petition_data.PetitionVoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&voteReq); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	petition, err := h.usecase.GetPetitionByID(voteReq.PetitionID)
+	if err != nil {
+		http.Error(w, "Petition not found", http.StatusNotFound)
+		return
+	}
+
+	if time.Now().After(petition.VotingDeadline) {
+		http.Error(w, "Voting period has ended", http.StatusForbidden)
+		return
+	}
+
+	totalVotes := petition.VotesInFavor + petition.VotesAgainst
+	if totalVotes >= petition.Goal {
+		http.Error(w, "Vote goal has been reached", http.StatusForbidden)
 		return
 	}
 

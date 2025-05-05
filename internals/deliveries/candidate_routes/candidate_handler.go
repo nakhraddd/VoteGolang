@@ -53,11 +53,11 @@ func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param vote body data.VoteRequest true "Candidate vote data"
+// @Param petition_data body data.VoteRequest true "Candidate petition_data data"
 // @Success 200 {string} string "Vote successful"
-// @Failure 400 {string} string "Invalid request format or duplicate vote"
+// @Failure 400 {string} string "Invalid request format or duplicate petition_data"
 // @Failure 401 {string} string "Unauthorized"
-// @Router /vote [post]
+// @Router /petition_data [post]
 func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {

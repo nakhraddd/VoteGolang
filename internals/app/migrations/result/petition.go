@@ -1,6 +1,6 @@
 package result
 
-// Migration summary for petition
+// Migration summary for petition_data
 // Table: petitions
 // -----------------------------------
 // CREATE TABLE petitions (

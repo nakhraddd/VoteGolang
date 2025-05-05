@@ -194,7 +194,7 @@ paths:
       parameters:
       - description: Petition Data
         in: body
-        name: petition
+        name: petition_data
         required: true
         schema:
           $ref: '#/definitions/data.Petition'
@@ -207,7 +207,7 @@ paths:
             type: string
       security:
       - BearerAuth: []
-      summary: Create a petition
+      summary: Create a petition_data
       tags:
       - Petition
   /petition/vote:
@@ -215,7 +215,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Petition vote data
+      - description: Petition petition_data data
         in: body
         name: petitionVote
         required: true
@@ -225,7 +225,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Voted on petition
+          description: Voted on petition_data
           schema:
             type: string
         "400":
@@ -234,7 +234,7 @@ paths:
             type: string
       security:
       - BearerAuth: []
-      summary: Vote on a petition
+      summary: Vote on a petition_data
       tags:
       - Petition
   /register:
@@ -267,9 +267,9 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Candidate vote data
+      - description: Candidate petition_data data
         in: body
-        name: vote
+        name: petition_data
         required: true
         schema:
           $ref: '#/definitions/data.VoteRequest'
@@ -281,7 +281,7 @@ paths:
           schema:
             type: string
         "400":
-          description: Invalid request format or duplicate vote
+          description: Invalid request format or duplicate petition_data
           schema:
             type: string
         "401":

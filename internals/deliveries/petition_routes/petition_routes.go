@@ -22,22 +22,22 @@ func RegisterPetitionRoutes(mux *http.ServeMux, handler *PetitionHandler, tokenM
 	}
 
 	mux.Handle("/petition/create", utils.JWTMiddleware(tokenManager)(
-		logRequest("/vote/petition_repository/create", handler.CreatePetition),
+		logRequest("/petition_data/petition_repository/create", handler.CreatePetition),
 	))
 
 	mux.Handle("/petition/all", utils.JWTMiddleware(tokenManager)(
-		logRequest("/vote/petition_repository/all", handler.GetAllPetitions),
+		logRequest("/petition_data/petition_repository/all", handler.GetAllPetitions),
 	))
 
 	mux.Handle("/petition/get", utils.JWTMiddleware(tokenManager)(
-		logRequest("/vote/petition_repository/get", handler.GetPetitionByID),
+		logRequest("/petition_data/petition_repository/get", handler.GetPetitionByID),
 	))
 
 	mux.Handle("/petition/vote", utils.JWTMiddleware(tokenManager)(
-		logRequest("/vote/petition_repository/vote", handler.Vote),
+		logRequest("/petition_data/petition_repository/petition_data", handler.Vote),
 	))
 
 	mux.Handle("/petition/delete", utils.JWTMiddleware(tokenManager)(
-		logRequest("/vote/petition_repository/delete", handler.DeletePetition),
+		logRequest("/petition_data/petition_repository/delete", handler.DeletePetition),
 	))
 }

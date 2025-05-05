@@ -140,7 +140,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/petition/all": {
+        "/petition_data/all": {
             "get": {
                 "security": [
                     {
@@ -167,7 +167,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/petition/create": {
+        "/petition_data/create": {
             "post": {
                 "security": [
                     {
@@ -183,11 +183,11 @@ const docTemplate = `{
                 "tags": [
                     "Petition"
                 ],
-                "summary": "Create a petition",
+                "summary": "Create a petition_data",
                 "parameters": [
                     {
                         "description": "Petition Data",
-                        "name": "petition",
+                        "name": "petition_data",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -205,7 +205,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/petition/vote": {
+        "/petition_data/petition_data": {
             "post": {
                 "security": [
                     {
@@ -221,10 +221,10 @@ const docTemplate = `{
                 "tags": [
                     "Petition"
                 ],
-                "summary": "Vote on a petition",
+                "summary": "Vote on a petition_data",
                 "parameters": [
                     {
-                        "description": "Petition vote data",
+                        "description": "Petition petition_data data",
                         "name": "petitionVote",
                         "in": "body",
                         "required": true,
@@ -235,7 +235,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Voted on petition",
+                        "description": "Voted on petition_data",
                         "schema": {
                             "type": "string"
                         }
@@ -288,7 +288,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/vote": {
+        "/petition_data": {
             "post": {
                 "security": [
                     {
@@ -307,8 +307,8 @@ const docTemplate = `{
                 "summary": "Vote for a candidate",
                 "parameters": [
                     {
-                        "description": "Candidate vote data",
-                        "name": "vote",
+                        "description": "Candidate petition_data data",
+                        "name": "petition_data",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -324,7 +324,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request format or duplicate vote",
+                        "description": "Invalid request format or duplicate petition_data",
                         "schema": {
                             "type": "string"
                         }

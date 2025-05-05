@@ -1,6 +1,6 @@
 package result
 
-// Migration summary for vote
+// Migration summary for petition_data
 // Table: votes
 // -----------------------------------
 // CREATE TABLE votes (
