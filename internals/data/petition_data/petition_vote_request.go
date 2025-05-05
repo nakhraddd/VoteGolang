@@ -4,5 +4,5 @@ package petition_data
 type PetitionVoteRequest struct {
 	UserId     uint     `json:"user_id"`
 	PetitionID uint     `json:"petition_id"`
-	VoteType   VoteType `json:"vote_type"`
+	VoteType   VoteType `json:"vote_type" enum:"favor,against" example:"favor"`
 }

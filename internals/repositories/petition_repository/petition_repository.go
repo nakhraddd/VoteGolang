@@ -44,14 +44,14 @@ func (r *petitionRepository) GetByID(id uint) (*petition_data.Petition, error) {
 func (r *petitionRepository) VoteInFavor(id uint) error {
 	return r.db.Model(&petition_data.Petition{}).
 		Where("id = ?", id).
-		Update("favor", gorm.Expr("favor + ?", 1)).
+		Update("favor", gorm.Expr("votes_in_favor + ?", 1)).
 		Error
 }
 
 func (r *petitionRepository) VoteAgainst(id uint) error {
 	return r.db.Model(&petition_data.Petition{}).
 		Where("id = ?", id).
-		Update("against", gorm.Expr("against + ?", 1)).
+		Update("against", gorm.Expr("votes_against + ?", 1)).
 		Error
 }
 

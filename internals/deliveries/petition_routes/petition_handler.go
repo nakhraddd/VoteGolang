@@ -29,9 +29,9 @@ func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager 
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param petition_data body data.Petition true "Petition Data"
+// @Param petition_data body petition_data.Petition true "Petition Data"
 // @Success 200 {string} string "Petition created"
-// @Router /petition_data/create [post]
+// @Router /petition/create [post]
 func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request) {
 	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {
@@ -75,8 +75,8 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 // @Tags Petition
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} data.Petition
-// @Router /petition_data/all [get]
+// @Success 200 {array} petition_data.Petition
+// @Router /petition/all [get]
 func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request) {
 	petitions, err := h.usecase.GetAllPetitions()
 	if err != nil {
@@ -107,10 +107,10 @@ func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param petitionVote body data.PetitionVoteRequest true "Petition petition_data data"
+// @Param petitionVote body petition_data.PetitionVoteRequest true "Petition petition_data data"
 // @Success 200 {string} string "Voted on petition_data"
 // @Failure 400 {string} string "Bad Request"
-// @Router /petition_data/petition_data [post]
+// @Router /petition/vote [post]
 func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {

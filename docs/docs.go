@@ -140,7 +140,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/petition_data/all": {
+        "/petition/all": {
             "get": {
                 "security": [
                     {
@@ -160,14 +160,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/data.Petition"
+                                "$ref": "#/definitions/petition_data.Petition"
                             }
                         }
                     }
                 }
             }
         },
-        "/petition_data/create": {
+        "/petition/create": {
             "post": {
                 "security": [
                     {
@@ -191,7 +191,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/data.Petition"
+                            "$ref": "#/definitions/petition_data.Petition"
                         }
                     }
                 ],
@@ -205,7 +205,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/petition_data/petition_data": {
+        "/petition/vote": {
             "post": {
                 "security": [
                     {
@@ -229,7 +229,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/data.PetitionVoteRequest"
+                            "$ref": "#/definitions/petition_data.PetitionVoteRequest"
                         }
                     }
                 ],
@@ -288,7 +288,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/petition_data": {
+        "/vote": {
             "post": {
                 "security": [
                     {
@@ -412,53 +412,6 @@ const docTemplate = `{
                 }
             }
         },
-        "data.Petition": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "photo": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "userID": {
-                    "type": "integer"
-                },
-                "votesAgainst": {
-                    "type": "integer"
-                },
-                "votesInFavor": {
-                    "type": "integer"
-                }
-            }
-        },
-        "data.PetitionVoteRequest": {
-            "type": "object",
-            "properties": {
-                "petition_id": {
-                    "type": "integer"
-                },
-                "user_id": {
-                    "type": "integer"
-                },
-                "vote_type": {
-                    "description": "TODO: types.VoteType",
-                    "type": "string"
-                }
-            }
-        },
         "data.VoteRequest": {
             "type": "object",
             "properties": {
@@ -469,6 +422,56 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "petition_data.Petition": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "goal": {
+                    "type": "integer"
+                },
+                "photo": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "votingDeadline": {
+                    "type": "string"
+                }
+            }
+        },
+        "petition_data.PetitionVoteRequest": {
+            "type": "object",
+            "properties": {
+                "petition_id": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "vote_type": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/petition_data.VoteType"
+                        }
+                    ],
+                    "example": "favor"
+                }
+            }
+        },
+        "petition_data.VoteType": {
+            "type": "string",
+            "enum": [
+                "favor",
+                "against"
+            ],
+            "x-enum-varnames": [
+                "Favor",
+                "Against"
+            ]
         }
     },
     "securityDefinitions": {

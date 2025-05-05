@@ -47,37 +47,6 @@ definitions:
       updatedAt:
         type: string
     type: object
-  data.Petition:
-    properties:
-      createdAt:
-        type: string
-      description:
-        type: string
-      id:
-        type: integer
-      photo:
-        type: string
-      title:
-        type: string
-      updatedAt:
-        type: string
-      userID:
-        type: integer
-      votesAgainst:
-        type: integer
-      votesInFavor:
-        type: integer
-    type: object
-  data.PetitionVoteRequest:
-    properties:
-      petition_id:
-        type: integer
-      user_id:
-        type: integer
-      vote_type:
-        description: 'TODO: types.VoteType'
-        type: string
-    type: object
   data.VoteRequest:
     properties:
       candidate_id:
@@ -85,6 +54,38 @@ definitions:
       candidate_type:
         type: string
     type: object
+  petition_data.Petition:
+    properties:
+      description:
+        type: string
+      goal:
+        type: integer
+      photo:
+        type: string
+      title:
+        type: string
+      votingDeadline:
+        type: string
+    type: object
+  petition_data.PetitionVoteRequest:
+    properties:
+      petition_id:
+        type: integer
+      user_id:
+        type: integer
+      vote_type:
+        allOf:
+        - $ref: '#/definitions/petition_data.VoteType'
+        example: favor
+    type: object
+  petition_data.VoteType:
+    enum:
+    - favor
+    - against
+    type: string
+    x-enum-varnames:
+    - Favor
+    - Against
 host: localhost:8080
 info:
   contact:
@@ -180,7 +181,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/data.Petition'
+              $ref: '#/definitions/petition_data.Petition'
             type: array
       security:
       - BearerAuth: []
@@ -197,7 +198,7 @@ paths:
         name: petition_data
         required: true
         schema:
-          $ref: '#/definitions/data.Petition'
+          $ref: '#/definitions/petition_data.Petition'
       produces:
       - application/json
       responses:
@@ -220,7 +221,7 @@ paths:
         name: petitionVote
         required: true
         schema:
-          $ref: '#/definitions/data.PetitionVoteRequest'
+          $ref: '#/definitions/petition_data.PetitionVoteRequest'
       produces:
       - application/json
       responses:

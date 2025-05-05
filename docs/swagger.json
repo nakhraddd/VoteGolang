@@ -154,7 +154,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/data.Petition"
+                                "$ref": "#/definitions/petition_data.Petition"
                             }
                         }
                     }
@@ -177,15 +177,15 @@
                 "tags": [
                     "Petition"
                 ],
-                "summary": "Create a petition",
+                "summary": "Create a petition_data",
                 "parameters": [
                     {
                         "description": "Petition Data",
-                        "name": "petition",
+                        "name": "petition_data",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/data.Petition"
+                            "$ref": "#/definitions/petition_data.Petition"
                         }
                     }
                 ],
@@ -215,21 +215,21 @@
                 "tags": [
                     "Petition"
                 ],
-                "summary": "Vote on a petition",
+                "summary": "Vote on a petition_data",
                 "parameters": [
                     {
-                        "description": "Petition vote data",
+                        "description": "Petition petition_data data",
                         "name": "petitionVote",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/data.PetitionVoteRequest"
+                            "$ref": "#/definitions/petition_data.PetitionVoteRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Voted on petition",
+                        "description": "Voted on petition_data",
                         "schema": {
                             "type": "string"
                         }
@@ -301,8 +301,8 @@
                 "summary": "Vote for a candidate",
                 "parameters": [
                     {
-                        "description": "Candidate vote data",
-                        "name": "vote",
+                        "description": "Candidate petition_data data",
+                        "name": "petition_data",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -318,7 +318,7 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request format or duplicate vote",
+                        "description": "Invalid request format or duplicate petition_data",
                         "schema": {
                             "type": "string"
                         }
@@ -406,53 +406,6 @@
                 }
             }
         },
-        "data.Petition": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "photo": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "userID": {
-                    "type": "integer"
-                },
-                "votesAgainst": {
-                    "type": "integer"
-                },
-                "votesInFavor": {
-                    "type": "integer"
-                }
-            }
-        },
-        "data.PetitionVoteRequest": {
-            "type": "object",
-            "properties": {
-                "petition_id": {
-                    "type": "integer"
-                },
-                "user_id": {
-                    "type": "integer"
-                },
-                "vote_type": {
-                    "description": "TODO: types.VoteType",
-                    "type": "string"
-                }
-            }
-        },
         "data.VoteRequest": {
             "type": "object",
             "properties": {
@@ -463,6 +416,56 @@
                     "type": "string"
                 }
             }
+        },
+        "petition_data.Petition": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "goal": {
+                    "type": "integer"
+                },
+                "photo": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "votingDeadline": {
+                    "type": "string"
+                }
+            }
+        },
+        "petition_data.PetitionVoteRequest": {
+            "type": "object",
+            "properties": {
+                "petition_id": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "vote_type": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/petition_data.VoteType"
+                        }
+                    ],
+                    "example": "favor"
+                }
+            }
+        },
+        "petition_data.VoteType": {
+            "type": "string",
+            "enum": [
+                "favor",
+                "against"
+            ],
+            "x-enum-varnames": [
+                "Favor",
+                "Against"
+            ]
         }
     },
     "securityDefinitions": {
