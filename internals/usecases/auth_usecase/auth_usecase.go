@@ -1,7 +1,7 @@
 package auth_usecase
 
 import (
-	"VoteGolang/internals/data"
+	"VoteGolang/internals/data/user_data"
 	"VoteGolang/internals/repositories/user_repository"
 	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
@@ -47,7 +47,7 @@ func (a *AuthUseCase) Login(username, password string) (string, error) {
 }
 
 // Register registers a new user with a hashed password.
-func (a *AuthUseCase) Register(user *data.User) error {
+func (a *AuthUseCase) Register(user *user_data.User) error {
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %v", err)

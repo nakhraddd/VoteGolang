@@ -1,4 +1,4 @@
-package data
+package auth_data
 
 // AuthRequest represents the body to login.
 type AuthRequest struct {

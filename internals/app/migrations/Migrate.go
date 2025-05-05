@@ -2,7 +2,9 @@ package migrations
 
 import (
 	"VoteGolang/internals/data/candidate_data"
+	"VoteGolang/internals/data/news_data"
 	"VoteGolang/internals/data/petition_data"
+	"VoteGolang/internals/data/user_data"
 	"fmt"
 	"log"
 	"os"
@@ -10,8 +12,6 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
-
-	"VoteGolang/internals/data"
 )
 
 func writeMigrationSummaryFromModel(db *gorm.DB, modelName string, model interface{}) error {
@@ -87,9 +87,9 @@ func MigrateAllTables(db *gorm.DB) error {
 		name  string
 		model interface{}
 	}{
-		{"user", &data.User{}},
+		{"user", &user_data.User{}},
 		{"candidate", &candidate_data.Candidate{}},
-		{"general_news", &data.GeneralNews{}},
+		{"general_news", &news_data.GeneralNews{}},
 		{"petition_data", &petition_data.Petition{}},
 		{"petition_vote", &petition_data.PetitionVote{}},
 		{"petition_data", &candidate_data.Vote{}},

@@ -6,17 +6,14 @@ import (
 	"VoteGolang/internals/app/connect"
 	"VoteGolang/internals/app/migrations"
 	"VoteGolang/internals/deliveries/candidate_routes"
-	"VoteGolang/internals/deliveries/general_news_routes"
 	"VoteGolang/internals/deliveries/login_routes"
 	"VoteGolang/internals/deliveries/petition_routes"
 	candidate_repo "VoteGolang/internals/repositories/candidate_repository"
-	general_news3 "VoteGolang/internals/repositories/general_news_repository"
 	petition3 "VoteGolang/internals/repositories/petition_repository"
 	"VoteGolang/internals/repositories/user_repository"
 	"VoteGolang/internals/repositories/votes_repositories"
 	"VoteGolang/internals/usecases/auth_usecase"
 	"VoteGolang/internals/usecases/candidate_usecase"
-	"VoteGolang/internals/usecases/general_news_usecase"
 	"VoteGolang/internals/usecases/petittion_usecase"
 	"VoteGolang/pkg/domain"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -82,15 +79,6 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 		tokenManager.(*domain.JwtToken),
 	)
 	candidate_routes.RegisterCandidateRoutes(mux, candidateHandler, tokenManager)
-
-	// General News
-	generalNewsHandler := general_news_routes.NewGeneralNewsHandler(
-		general_news_usecase.NewGeneralNewsUseCase(
-			general_news3.NewGeneralNewsRepository(a.DB),
-		),
-		tokenManager.(*domain.JwtToken),
-	)
-	general_news_routes.RegisterGeneralNewsRoutes(mux, generalNewsHandler, tokenManager)
 
 	//Petitions
 	petitionsHandler := petition_routes.NewPetitionHandler(

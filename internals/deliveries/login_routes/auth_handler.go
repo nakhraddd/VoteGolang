@@ -1,7 +1,8 @@
 package login_routes
 
 import (
-	"VoteGolang/internals/data"
+	"VoteGolang/internals/data/auth_data"
+	"VoteGolang/internals/data/user_data"
 	"VoteGolang/internals/usecases/auth_usecase"
 	"VoteGolang/pkg/domain"
 	"encoding/json"
@@ -29,7 +30,7 @@ func NewAuthHandler(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.T
 // @Failure 401 {string} string "Unauthorized"
 // @Router /login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req data.AuthRequest
+	var req auth_data.AuthRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -55,7 +56,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {string} string "Invalid Request"
 // @Router /register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var req data.User
+	var req user_data.User
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
