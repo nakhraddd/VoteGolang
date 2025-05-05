@@ -1,7 +1,7 @@
 package candidate_routes
 
 import (
-	"VoteGolang/internals/data"
+	"VoteGolang/internals/data/candidate_data"
 	"VoteGolang/internals/usecases/candidate_usecase"
 	"VoteGolang/internals/utils"
 	"VoteGolang/pkg/domain"
@@ -28,7 +28,7 @@ func NewCandidateHandler(uc *candidate_usecase.CandidateUseCase, tokenManager *d
 // @Produce json
 // @Param type query string true "Candidate Type"
 // @Security BearerAuth
-// @Success 200 {array} data.Candidate "List of candidates"
+// @Success 200 {array} candidate_data.Candidate "List of candidates"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /candidates [get]
@@ -49,11 +49,11 @@ func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Vote for a candidate
-// @Tags Vote
+// @Tags Candidates
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param petition_data body data.VoteRequest true "Candidate petition_data data"
+// @Param candidate_data body candidate_data.VoteRequest true "Candidate petition_data data"
 // @Success 200 {string} string "Vote successful"
 // @Failure 400 {string} string "Invalid request format or duplicate petition_data"
 // @Failure 401 {string} string "Unauthorized"
@@ -87,13 +87,13 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("User ID from token: %s", userID)
 
-	var req data.VoteRequest
+	var req candidate_data.VoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request format", http.StatusBadRequest)
 		return
 	}
 
-	err = h.UseCase.Vote(req.CandidateID, userID, req.CandidateType)
+	err = h.UseCase.Vote(req.CandidateID, userID, candidate_data.CandidateType(req.CandidateType))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

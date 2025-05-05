@@ -1,7 +1,7 @@
 package votes_repositories
 
 import (
-	"VoteGolang/internals/data"
+	"VoteGolang/internals/data/candidate_data"
 	"gorm.io/gorm"
 )
 
@@ -21,14 +21,14 @@ func NewVoteRepository(db *gorm.DB) VoteRepository {
 
 func (r *voteRepository) HasVoted(userID uint, voteType string) (bool, error) {
 	var count int64
-	err := r.db.Model(&data.Vote{}).
+	err := r.db.Model(&candidate_data.Vote{}).
 		Where("user_id = ? AND candidate_type = ?", userID, voteType).
 		Count(&count).Error
 	return count > 0, err
 }
 
 func (r *voteRepository) SaveVote(candidateID uint, userID uint, candidateType string) error {
-	vote := &data.Vote{
+	vote := &candidate_data.Vote{
 		CandidateID:   candidateID,
 		UserID:        userID,
 		CandidateType: candidateType,

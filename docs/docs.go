@@ -52,7 +52,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/data.Candidate"
+                                "$ref": "#/definitions/candidate_data.Candidate"
                             }
                         }
                     },
@@ -302,17 +302,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Vote"
+                    "Candidates"
                 ],
                 "summary": "Vote for a candidate",
                 "parameters": [
                     {
                         "description": "Candidate petition_data data",
-                        "name": "petition_data",
+                        "name": "candidate_data",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/data.VoteRequest"
+                            "$ref": "#/definitions/candidate_data.VoteRequest"
                         }
                     }
                 ],
@@ -340,25 +340,11 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "data.AuthRequest": {
-            "type": "object",
-            "properties": {
-                "password": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "data.Candidate": {
+        "candidate_data.Candidate": {
             "type": "object",
             "properties": {
                 "age": {
                     "type": "integer"
-                },
-                "createdAt": {
-                    "type": "string"
                 },
                 "education": {
                     "type": "string"
@@ -379,13 +365,53 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
+                    "$ref": "#/definitions/candidate_data.CandidateType"
                 },
                 "votes": {
                     "type": "integer"
+                },
+                "votingDeadline": {
+                    "type": "string"
+                }
+            }
+        },
+        "candidate_data.CandidateType": {
+            "type": "string",
+            "enum": [
+                "presidential",
+                "deputy",
+                "manager"
+            ],
+            "x-enum-varnames": [
+                "Presidential",
+                "Deputy",
+                "Manager"
+            ]
+        },
+        "candidate_data.VoteRequest": {
+            "type": "object",
+            "properties": {
+                "candidate_id": {
+                    "type": "integer"
+                },
+                "candidate_type": {
+                    "type": "string",
+                    "enum": [
+                        "presidential",
+                        "deputy",
+                        "manager"
+                    ]
+                }
+            }
+        },
+        "data.AuthRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
@@ -408,17 +434,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updatedAt": {
-                    "type": "string"
-                }
-            }
-        },
-        "data.VoteRequest": {
-            "type": "object",
-            "properties": {
-                "candidate_id": {
-                    "type": "integer"
-                },
-                "candidate_type": {
                     "type": "string"
                 }
             }

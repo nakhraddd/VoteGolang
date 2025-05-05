@@ -8,7 +8,7 @@ import (
 // PetitionVote represents a petition_data on a petition_data.
 type PetitionVote struct {
 	ID         uint `gorm:"primaryKey;autoIncrement"`
-	UserID     uint `gorm:"type:varchar(255);not null"`
+	UserID     uint `gorm:"type:varchar(255);not null" swaggerignore:"true"`
 	PetitionID uint
 	VoteType   VoteType       `gorm:"type:varchar(255);not null"`
 	DeletedAt  gorm.DeletedAt `json:"-" swaggerignore:"true"`

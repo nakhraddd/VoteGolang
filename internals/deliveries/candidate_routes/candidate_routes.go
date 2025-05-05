@@ -26,6 +26,6 @@ func RegisterCandidateRoutes(mux *http.ServeMux, handler *CandidateHandler, toke
 	))
 
 	mux.Handle("/vote", utils.JWTMiddleware(tokenManager)(
-		logRequest("/petition_data", handler.Vote),
+		logRequest("/candidate/vote", handler.Vote),
 	))
 }

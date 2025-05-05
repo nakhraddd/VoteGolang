@@ -1,14 +1,14 @@
 package candidate_repository
 
 import (
-	"VoteGolang/internals/data"
+	"VoteGolang/internals/data/candidate_data"
 	"gorm.io/gorm"
 )
 
 // CandidateRepository retrieves candidate data.
 type CandidateRepository interface {
-	GetAllByType(candidateType string) ([]data.Candidate, error)
-	GetByID(id uint) (*data.Candidate, error)
+	GetAllByType(candidateType string) ([]candidate_data.Candidate, error)
+	GetByID(id uint) (*candidate_data.Candidate, error)
 	IncrementVote(id uint) error
 }
 
@@ -20,14 +20,14 @@ func NewCandidateRepository(db *gorm.DB) CandidateRepository {
 	return &candidateRepository{db: db}
 }
 
-func (r *candidateRepository) GetAllByType(candidateType string) ([]data.Candidate, error) {
-	var candidates []data.Candidate
+func (r *candidateRepository) GetAllByType(candidateType string) ([]candidate_data.Candidate, error) {
+	var candidates []candidate_data.Candidate
 	err := r.db.Where("type = ?", candidateType).Find(&candidates).Error
 	return candidates, err
 }
 
-func (r *candidateRepository) GetByID(id uint) (*data.Candidate, error) {
-	var candidate data.Candidate
+func (r *candidateRepository) GetByID(id uint) (*candidate_data.Candidate, error) {
+	var candidate candidate_data.Candidate
 	err := r.db.First(&candidate, id).Error
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func (r *candidateRepository) GetByID(id uint) (*data.Candidate, error) {
 }
 
 func (r *candidateRepository) IncrementVote(id uint) error {
-	return r.db.Model(&data.Candidate{}).
+	return r.db.Model(&candidate_data.Candidate{}).
 		Where("id = ?", id).
 		UpdateColumn("votes", gorm.Expr("votes + ?", 1)).Error
 }
