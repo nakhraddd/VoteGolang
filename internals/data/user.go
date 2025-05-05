@@ -12,8 +12,8 @@ type User struct {
 	UserFullName *string `gorm:"type:varchar(100)"`
 	Password     string  `gorm:"type:varchar(255);not null"`
 	BirthDate    *time.Time
-	Address      *string `gorm:"type:text"`
-	DeletedAt    gorm.DeletedAt
-	CreatedAt    time.Time `gorm:"autoCreateTime"`
-	UpdatedAt    time.Time `gorm:"autoUpdateTime"`
+	Address      *string        `gorm:"type:text"`
+	DeletedAt    gorm.DeletedAt `json:"-" swaggerignore:"true"`
+	CreatedAt    time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt    time.Time      `gorm:"autoUpdateTime"`
 }

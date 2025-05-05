@@ -1,6 +1,7 @@
 package app
 
 import (
+	_ "VoteGolang/docs" // ← This is important for registering the generated Swagger docs
 	"VoteGolang/internals/app/conf"
 	"VoteGolang/internals/app/connect"
 	"VoteGolang/internals/app/migrations"
@@ -18,6 +19,7 @@ import (
 	"VoteGolang/internals/usecases/general_news_usecase"
 	"VoteGolang/internals/usecases/petittion_usecase"
 	"VoteGolang/pkg/domain"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
@@ -58,6 +60,10 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	log.Println("Starting server on port 8080...")
 
 	mux := http.NewServeMux()
+
+	// Swagger UI route
+	mux.Handle("/swagger/", httpSwagger.WrapHandler)
+
 	//auth
 	authHandler := login_routes.NewAuthHandler(authUseCase, tokenManager)
 	login_routes.AuthorizationRoutes(mux, authHandler, tokenManager)
@@ -108,4 +114,5 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
+
 }

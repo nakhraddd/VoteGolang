@@ -1,0 +1,301 @@
+basePath: /
+definitions:
+  data.AuthRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  data.Candidate:
+    properties:
+      age:
+        type: integer
+      createdAt:
+        type: string
+      education:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      party:
+        type: string
+      photo:
+        type: string
+      region:
+        type: string
+      type:
+        type: string
+      updatedAt:
+        type: string
+      votes:
+        type: integer
+    type: object
+  data.GeneralNews:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: integer
+      paragraph:
+        type: string
+      photo:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  data.Petition:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      photo:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+      userID:
+        type: integer
+      votesAgainst:
+        type: integer
+      votesInFavor:
+        type: integer
+    type: object
+  data.PetitionVoteRequest:
+    properties:
+      petition_id:
+        type: integer
+      user_id:
+        type: integer
+      vote_type:
+        description: 'TODO: types.VoteType'
+        type: string
+    type: object
+  data.VoteRequest:
+    properties:
+      candidate_id:
+        type: integer
+      candidate_type:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@dauys.com
+    name: API Support
+  description: This is the backend API for the Online Election system.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://dayus.kz
+  title: Online Election Vote
+  version: "1.0"
+paths:
+  /candidates:
+    get:
+      parameters:
+      - description: Candidate Type
+        in: query
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of candidates
+          schema:
+            items:
+              $ref: '#/definitions/data.Candidate'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get candidates by type
+      tags:
+      - Candidates
+  /general_news:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.GeneralNews'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get general news
+      tags:
+      - News
+  /login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Username and Password
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/data.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Login and get access token
+      tags:
+      - Auth
+  /petition/all:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Petition'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get all petitions
+      tags:
+      - Petition
+  /petition/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Petition Data
+        in: body
+        name: petition
+        required: true
+        schema:
+          $ref: '#/definitions/data.Petition'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Petition created
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Create a petition
+      tags:
+      - Petition
+  /petition/vote:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Petition vote data
+        in: body
+        name: petitionVote
+        required: true
+        schema:
+          $ref: '#/definitions/data.PetitionVoteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Voted on petition
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Vote on a petition
+      tags:
+      - Petition
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Username and Password
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/data.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User registered successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid Request
+          schema:
+            type: string
+      summary: Register a new user
+      tags:
+      - Auth
+  /vote:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Candidate vote data
+        in: body
+        name: vote
+        required: true
+        schema:
+          $ref: '#/definitions/data.VoteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Vote successful
+          schema:
+            type: string
+        "400":
+          description: Invalid request format or duplicate vote
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Vote for a candidate
+      tags:
+      - Vote
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

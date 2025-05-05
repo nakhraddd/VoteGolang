@@ -39,7 +39,7 @@ func (h *GeneralNewsHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Tags News
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} News
+// @Success 200 {array} data.GeneralNews
 // @Router /general_news [get]
 func (h *GeneralNewsHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	newsList, err := h.UseCase.GetAll()

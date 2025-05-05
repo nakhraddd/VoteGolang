@@ -24,15 +24,12 @@ func NewAuthHandler(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.T
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param credentials body AuthRequest true "Username and Password"
-// @Success 200 {object} token
+// @Param credentials body data.AuthRequest true "Username and Password"
+// @Success 200 {object} map[string]string
 // @Failure 401 {string} string "Unauthorized"
 // @Router /login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+	var req data.AuthRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -53,7 +50,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param credentials body AuthRequest true "Username and Password"
+// @Param credentials body data.AuthRequest true "Username and Password"
 // @Success 200 {string} string "User registered successfully"
 // @Failure 400 {string} string "Invalid Request"
 // @Router /register [post]

@@ -31,6 +31,8 @@ func JWTMiddleware(tokenManager domain.TokenManager) func(http.Handler) http.Han
 				return
 			}
 
+			// TODO: r.WithContext(context.WithValue(r.Context(), userIDKey, token))
+
 			next.ServeHTTP(w, r)
 		})
 	}

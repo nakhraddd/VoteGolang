@@ -28,7 +28,9 @@ func NewCandidateHandler(uc *candidate_usecase.CandidateUseCase, tokenManager *d
 // @Produce json
 // @Param type query string true "Candidate Type"
 // @Security BearerAuth
-// @Success 200 {array} Candidate
+// @Success 200 {array} data.Candidate "List of candidates"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
 // @Router /candidates [get]
 func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	typ := r.URL.Query().Get("type")
@@ -51,9 +53,10 @@ func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param vote body VoteRequest true "Candidate vote data"
-// @Success 200 {string} string "Vote cast successfully"
-// @Failure 400 {string} string "Bad Request"
+// @Param vote body data.VoteRequest true "Candidate vote data"
+// @Success 200 {string} string "Vote successful"
+// @Failure 400 {string} string "Invalid request format or duplicate vote"
+// @Failure 401 {string} string "Unauthorized"
 // @Router /vote [post]
 func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	token, err := utils.ExtractTokenFromRequest(r)

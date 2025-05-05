@@ -28,7 +28,7 @@ func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager 
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param petition body PetitionRequest true "Petition Data"
+// @Param petition body data.Petition true "Petition Data"
 // @Success 200 {string} string "Petition created"
 // @Router /petition/create [post]
 func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,7 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 // @Tags Petition
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} Petition
+// @Success 200 {array} data.Petition
 // @Router /petition/all [get]
 func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request) {
 	petitions, err := h.usecase.GetAllPetitions()
@@ -85,15 +85,6 @@ func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(petitions)
 }
 
-// @Summary Vote on a petition
-// @Tags Petition
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param petitionVote body PetitionVoteRequest true "Petition vote data"
-// @Success 200 {string} string "Voted on petition"
-// @Failure 400 {string} string "Bad Request"
-// @Router /vote/petition/vote [post]
 func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
@@ -110,6 +101,15 @@ func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(petition)
 }
 
+// @Summary Vote on a petition
+// @Tags Petition
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param petitionVote body data.PetitionVoteRequest true "Petition vote data"
+// @Success 200 {string} string "Voted on petition"
+// @Failure 400 {string} string "Bad Request"
+// @Router /petition/vote [post]
 func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	token, err := utils.ExtractTokenFromRequest(r)
 	if err != nil {
@@ -132,12 +132,13 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&data.Input); err != nil {
+	var voteReq data.PetitionVoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&voteReq); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = h.usecase.Vote(userID, data.Input.PetitionID, data.Input.VoteType)
+	err = h.usecase.Vote(userID, voteReq.PetitionID, voteReq.VoteType)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
