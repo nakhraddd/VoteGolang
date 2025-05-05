@@ -1,5 +1,12 @@
 basePath: /
 definitions:
+  auth_data.AuthRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
   candidate_data.Candidate:
     properties:
       age:
@@ -42,28 +49,6 @@ definitions:
         - presidential
         - deputy
         - manager
-        type: string
-    type: object
-  data.AuthRequest:
-    properties:
-      password:
-        type: string
-      username:
-        type: string
-    type: object
-  data.GeneralNews:
-    properties:
-      createdAt:
-        type: string
-      id:
-        type: integer
-      paragraph:
-        type: string
-      photo:
-        type: string
-      title:
-        type: string
-      updatedAt:
         type: string
     type: object
   petition_data.Petition:
@@ -141,22 +126,6 @@ paths:
       summary: Get candidates by type
       tags:
       - Candidates
-  /general_news:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/data.GeneralNews'
-            type: array
-      security:
-      - BearerAuth: []
-      summary: Get general news
-      tags:
-      - News
   /login:
     post:
       consumes:
@@ -167,7 +136,7 @@ paths:
         name: credentials
         required: true
         schema:
-          $ref: '#/definitions/data.AuthRequest'
+          $ref: '#/definitions/auth_data.AuthRequest'
       produces:
       - application/json
       responses:
@@ -260,7 +229,7 @@ paths:
         name: credentials
         required: true
         schema:
-          $ref: '#/definitions/data.AuthRequest'
+          $ref: '#/definitions/auth_data.AuthRequest'
       produces:
       - application/json
       responses:

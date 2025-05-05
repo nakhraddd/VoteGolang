@@ -71,33 +71,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/general_news": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "News"
-                ],
-                "summary": "Get general news",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/data.GeneralNews"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/login": {
             "post": {
                 "consumes": [
@@ -117,7 +90,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/data.AuthRequest"
+                            "$ref": "#/definitions/auth_data.AuthRequest"
                         }
                     }
                 ],
@@ -268,7 +241,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/data.AuthRequest"
+                            "$ref": "#/definitions/auth_data.AuthRequest"
                         }
                     }
                 ],
@@ -340,6 +313,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "auth_data.AuthRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "candidate_data.Candidate": {
             "type": "object",
             "properties": {
@@ -401,40 +385,6 @@ const docTemplate = `{
                         "deputy",
                         "manager"
                     ]
-                }
-            }
-        },
-        "data.AuthRequest": {
-            "type": "object",
-            "properties": {
-                "password": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "data.GeneralNews": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "paragraph": {
-                    "type": "string"
-                },
-                "photo": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
                 }
             }
         },

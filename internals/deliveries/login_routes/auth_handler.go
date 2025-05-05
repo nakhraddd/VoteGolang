@@ -25,7 +25,7 @@ func NewAuthHandler(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.T
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param credentials body data.AuthRequest true "Username and Password"
+// @Param credentials body auth_data.AuthRequest true "Username and Password"
 // @Success 200 {object} map[string]string
 // @Failure 401 {string} string "Unauthorized"
 // @Router /login [post]
@@ -51,7 +51,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param credentials body data.AuthRequest true "Username and Password"
+// @Param credentials body auth_data.AuthRequest true "Username and Password"
 // @Success 200 {string} string "User registered successfully"
 // @Failure 400 {string} string "Invalid Request"
 // @Router /register [post]

@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"VoteGolang/internals/data/candidate_data"
-	"VoteGolang/internals/data/news_data"
 	"VoteGolang/internals/data/petition_data"
 	"VoteGolang/internals/data/user_data"
 	"fmt"
@@ -89,7 +88,6 @@ func MigrateAllTables(db *gorm.DB) error {
 	}{
 		{"user", &user_data.User{}},
 		{"candidate", &candidate_data.Candidate{}},
-		{"general_news", &news_data.GeneralNews{}},
 		{"petition_data", &petition_data.Petition{}},
 		{"petition_vote", &petition_data.PetitionVote{}},
 		{"petition_data", &candidate_data.Vote{}},
