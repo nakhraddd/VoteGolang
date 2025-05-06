@@ -16,7 +16,8 @@ type Candidate struct {
 	Region         *string        `gorm:"type:varchar(255)"`
 	Votes          int            `gorm:"default:0"`
 	Type           CandidateType  `gorm:"type:varchar(255);not null"`
-	VotingDeadline time.Time      `gorm:"type:datetime"`
+	VotingStart    time.Time      `gorm:"type:datetime" example:"2025-05-10T23:59:00+05:00"`
+	VotingDeadline time.Time      `gorm:"type:datetime" example:"2025-05-10T23:59:00+05:00"`
 	DeletedAt      gorm.DeletedAt `json:"-" swaggerignore:"true"`
 	CreatedAt      time.Time      `gorm:"autoCreateTime" swaggerignore:"true"`
 	UpdatedAt      time.Time      `gorm:"autoUpdateTime" swaggerignore:"true"`

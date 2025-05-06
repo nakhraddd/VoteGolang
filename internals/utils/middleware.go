@@ -2,38 +2,40 @@ package utils
 
 import (
 	"VoteGolang/pkg/domain"
+	"context"
 	"errors"
-	"fmt"
-	"github.com/golang-jwt/jwt"
-	"log"
+	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"strings"
 )
 
 type contextKey string
 
-const sessionKey contextKey = "session"
+const (
+	sessionKey contextKey = "session"
+	userIDKey  contextKey = "userID"
+)
 
 func JWTMiddleware(tokenManager domain.TokenManager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			token, err := ExtractTokenFromRequest(r)
+			tokenStr, err := ExtractTokenFromRequest(r)
 			if err != nil {
 				http.Error(w, "Authorization header missing", http.StatusUnauthorized)
 				return
 			}
 
-			log.Printf("Token extracted: %s", token)
-
-			valid, err := tokenManager.Check(r.Context(), token)
-			if err != nil || !valid {
+			claims := &domain.JwtClaims{}
+			_, err = jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+				return tokenManager.GetSecret(), nil
+			})
+			if err != nil || claims.UserID == 0 {
 				http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 				return
 			}
 
-			// TODO: r.WithContext(context.WithValue(r.Context(), userIDKey, token))
-
-			next.ServeHTTP(w, r)
+			ctx := context.WithValue(r.Context(), userIDKey, claims.UserID)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
@@ -50,31 +52,4 @@ func ExtractTokenFromRequest(r *http.Request) (string, error) {
 	}
 
 	return parts[1], nil
-}
-
-func ExtractUserIDFromToken(token string, secret []byte) (string, error) {
-	if token == "" {
-		return "", errors.New("empty token")
-	}
-
-	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
-		}
-		return secret, nil
-	})
-
-	if err != nil {
-		return "", fmt.Errorf("failed to parse token: %v", err)
-	}
-
-	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
-		userID, ok := claims["sub"].(string)
-		if !ok {
-			return "", errors.New("user_repository ID not found in token")
-		}
-		return userID, nil
-	}
-
-	return "", errors.New("invalid token")
 }

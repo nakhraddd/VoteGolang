@@ -355,7 +355,12 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "votingDeadline": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-05-10T23:59:00+05:00"
+                },
+                "votingStart": {
+                    "type": "string",
+                    "example": "2025-05-10T23:59:00+05:00"
                 }
             }
         },
@@ -405,7 +410,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "votingDeadline": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-05-10T23:59:00+05:00"
                 }
             }
         },
@@ -413,9 +419,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "petition_id": {
-                    "type": "integer"
-                },
-                "user_id": {
                     "type": "integer"
                 },
                 "vote_type": {

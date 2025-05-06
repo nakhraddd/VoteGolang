@@ -28,6 +28,10 @@ definitions:
       votes:
         type: integer
       votingDeadline:
+        example: "2025-05-10T23:59:00+05:00"
+        type: string
+      votingStart:
+        example: "2025-05-10T23:59:00+05:00"
         type: string
     type: object
   candidate_data.CandidateType:
@@ -63,13 +67,12 @@ definitions:
       title:
         type: string
       votingDeadline:
+        example: "2025-05-10T23:59:00+05:00"
         type: string
     type: object
   petition_data.PetitionVoteRequest:
     properties:
       petition_id:
-        type: integer
-      user_id:
         type: integer
       vote_type:
         allOf:

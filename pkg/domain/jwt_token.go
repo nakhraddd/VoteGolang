@@ -52,3 +52,7 @@ func (tk *JwtToken) Check(ctx context.Context, inputToken string) (bool, error) 
 
 	return true, nil
 }
+
+func (j *JwtToken) GetSecret() []byte {
+	return j.Secret
+}

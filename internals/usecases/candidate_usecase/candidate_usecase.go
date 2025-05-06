@@ -48,6 +48,9 @@ func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType ca
 	if candidate.Type != candidateType {
 		return errors.New("candidate type mismatch")
 	}
+	if time.Now().Before(candidate.VotingStart) {
+		return errors.New("voting has not started for this candidate")
+	}
 
 	if time.Now().After(candidate.VotingDeadline) {
 		return errors.New("voting period has ended for this candidate")

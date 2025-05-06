@@ -153,7 +153,6 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	totalVotes := petition.VotesInFavor + petition.VotesAgainst
 	if totalVotes >= petition.Goal {
 		http.Error(w, "Vote goal has been reached", http.StatusForbidden)
-		return
 	}
 
 	err = h.usecase.Vote(userID, voteReq.PetitionID, voteReq.VoteType)

@@ -35,7 +35,6 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
 		return nil, nil, nil, err
 	}
 
-	// Now db has logging enabled — no need for db = db.Debug()
 	err = migrations.MigrateAllTables(db)
 	if err != nil {
 		return nil, nil, nil, err
