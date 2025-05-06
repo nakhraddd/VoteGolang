@@ -20,6 +20,9 @@ func NewCandidateUseCase(cRepo candidate_repository.CandidateRepository, vRepo v
 		VoteRepo:      vRepo,
 	}
 }
+func (uc *CandidateUseCase) GetAllByTypePaginated(candidateType string, limit, offset int) ([]candidate_data.Candidate, error) {
+	return uc.CandidateRepo.GetAllByTypePaginated(candidateType, limit, offset)
+}
 
 // GetAllByType returns a list of candidates filtered by type.
 func (uc *CandidateUseCase) GetAllByType(candidateType string) ([]candidate_data.Candidate, error) {

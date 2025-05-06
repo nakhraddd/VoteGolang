@@ -131,6 +131,36 @@ paths:
       summary: Get candidates by type
       tags:
       - Candidates
+  /candidates/:
+    get:
+      parameters:
+      - description: Candidate Type
+        in: query
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of candidates
+          schema:
+            items:
+              $ref: '#/definitions/candidate_data.Candidate'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get candidates by type by page
+      tags:
+      - Candidates
   /login:
     post:
       consumes:
@@ -172,6 +202,22 @@ paths:
       security:
       - BearerAuth: []
       summary: Get all petitions
+      tags:
+      - Petition
+  /petition/all/:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/petition_data.Petition'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get petitions by page
       tags:
       - Petition
   /petition/create:

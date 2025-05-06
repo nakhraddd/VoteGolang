@@ -18,6 +18,7 @@ type PetitionUseCase interface {
 	Vote(userID uint, petitionID uint, voteType petition_data.VoteType) error
 	DeletePetition(id uint) error
 	HasUserVoted(userID uint, petitionID uint) (bool, error)
+	GetAllPetitionsPaginated(limit, offset int) ([]petition_data.Petition, error)
 }
 
 type petitionUseCase struct {
@@ -30,6 +31,9 @@ func NewPetitionUseCase(pr petition_repository.PetitionRepository, pvr votes_rep
 		petitionRepo:     pr,
 		petitionVoteRepo: pvr,
 	}
+}
+func (uc *petitionUseCase) GetAllPetitionsPaginated(limit, offset int) ([]petition_data.Petition, error) {
+	return uc.petitionRepo.GetAllPaginated(limit, offset)
 }
 
 func (uc *petitionUseCase) CreatePetition(p *petition_data.Petition) error {

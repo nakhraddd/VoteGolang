@@ -8,6 +8,7 @@ import (
 type PetitionRepository interface {
 	Create(petition *petition_data.Petition) error
 	GetAll() ([]petition_data.Petition, error)
+	GetAllPaginated(limit, offset int) ([]petition_data.Petition, error)
 	GetByID(id uint) (*petition_data.Petition, error)
 	VoteInFavor(id uint) error
 	VoteAgainst(id uint) error
@@ -24,6 +25,15 @@ func NewPetitionRepository(db *gorm.DB) PetitionRepository {
 
 func (r *petitionRepository) Create(petition *petition_data.Petition) error {
 	return r.db.Create(petition).Error
+}
+
+func (r *petitionRepository) GetAllPaginated(limit, offset int) ([]petition_data.Petition, error) {
+	var petitions []petition_data.Petition
+	err := r.db.
+		Limit(limit).
+		Offset(offset).
+		Find(&petitions).Error
+	return petitions, err
 }
 
 func (r *petitionRepository) GetAll() ([]petition_data.Petition, error) {

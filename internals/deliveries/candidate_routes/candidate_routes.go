@@ -24,6 +24,9 @@ func RegisterCandidateRoutes(mux *http.ServeMux, handler *CandidateHandler, toke
 	mux.Handle("/candidates", utils.JWTMiddleware(tokenManager)(
 		logRequest("/candidates", handler.GetAll),
 	))
+	mux.Handle("/candidates/", utils.JWTMiddleware(tokenManager)(
+		logRequest("/candidates/candidates_repository/all_by_page", handler.GetCandidatesByPage),
+	))
 
 	mux.Handle("/vote", utils.JWTMiddleware(tokenManager)(
 		logRequest("/candidate/vote", handler.Vote),

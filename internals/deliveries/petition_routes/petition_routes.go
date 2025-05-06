@@ -28,6 +28,9 @@ func RegisterPetitionRoutes(mux *http.ServeMux, handler *PetitionHandler, tokenM
 	mux.Handle("/petition/all", utils.JWTMiddleware(tokenManager)(
 		logRequest("/petition_data/petition_repository/all", handler.GetAllPetitions),
 	))
+	mux.Handle("/petition/all/", utils.JWTMiddleware(tokenManager)(
+		logRequest("/petition_data/petition_repository/all_by_page", handler.GetPetitionsByPage),
+	))
 
 	mux.Handle("/petition/get", utils.JWTMiddleware(tokenManager)(
 		logRequest("/petition_data/petition_repository/get", handler.GetPetitionByID),

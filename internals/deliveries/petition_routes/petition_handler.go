@@ -9,6 +9,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -78,11 +79,56 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 // @Success 200 {array} petition_data.Petition
 // @Router /petition/all [get]
 func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request) {
-	petitions, err := h.usecase.GetAllPetitions()
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
+	petitions, err := h.usecase.GetAllPetitionsPaginated(limit, offset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	json.NewEncoder(w).Encode(petitions)
+}
+
+// @Summary Get petitions by page
+// @Tags Petition
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} petition_data.Petition
+// @Router /petition/all/ [get]
+func (h *PetitionHandler) GetPetitionsByPage(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path // example: /petition/all/3
+	parts := strings.Split(path, "/")
+	if len(parts) < 4 {
+		http.Error(w, "Page number required", http.StatusBadRequest)
+		return
+	}
+
+	pageStr := parts[3]
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page <= 0 {
+		http.Error(w, "Invalid page number", http.StatusBadRequest)
+		return
+	}
+
+	const limit = 1
+	offset := (page - 1) * limit
+
+	petitions, err := h.usecase.GetAllPetitionsPaginated(limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	json.NewEncoder(w).Encode(petitions)
 }
 
