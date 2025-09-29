@@ -17,7 +17,11 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
-	godotenv.Load() // загружает переменные из .env
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+		return nil
+	} // загружает переменные из .env
 	return &Config{
 		JWTSecret: getEnv("JWT_SECRET", "defaultsecret"),
 		DBHost:    getEnv("DB_HOST", "localhost"),
