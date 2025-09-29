@@ -1,12 +1,13 @@
 package connect
 
 import (
-	"VoteGolang/internals/app/conf"
+	"VoteGolang/conf"
 	"VoteGolang/internals/app/migrations"
 	"fmt"
+	"log"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"log"
 )
 
 func ConnectDB(config *conf.Config) (*gorm.DB, error) {

@@ -1,7 +1,7 @@
 package candidate_routes
 
 import (
-	http2 "VoteGolang/internals/deliveries/http"
+	http2 "VoteGolang/internals/controller/http"
 	"VoteGolang/internals/domain"
 	"log"
 	"net/http"

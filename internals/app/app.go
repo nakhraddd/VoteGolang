@@ -1,13 +1,13 @@
 package app
 
 import (
+	"VoteGolang/conf"
 	_ "VoteGolang/docs" // ← This is important for registering the generated Swagger docs
-	"VoteGolang/internals/app/conf"
 	"VoteGolang/internals/app/connect"
 	"VoteGolang/internals/app/migrations"
-	"VoteGolang/internals/deliveries/candidate_routes"
-	"VoteGolang/internals/deliveries/login_routes"
-	"VoteGolang/internals/deliveries/petition_routes"
+	"VoteGolang/internals/controller/candidate_routes"
+	"VoteGolang/internals/controller/login_routes"
+	"VoteGolang/internals/controller/petition_routes"
 	"VoteGolang/internals/domain"
 	candidate_repo "VoteGolang/internals/infrastructure/repositories/candidate_repository"
 	petition3 "VoteGolang/internals/infrastructure/repositories/petition_repository"

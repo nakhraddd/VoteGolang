@@ -1,7 +1,7 @@
 package petition_routes
 
 import (
-	http2 "VoteGolang/internals/deliveries/http"
+	http2 "VoteGolang/internals/controller/http"
 	petition_data2 "VoteGolang/internals/domain"
 	"VoteGolang/internals/usecases/petittion_usecase"
 	"encoding/json"

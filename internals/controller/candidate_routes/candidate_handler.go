@@ -1,7 +1,7 @@
 package candidate_routes
 
 import (
-	http2 "VoteGolang/internals/deliveries/http"
+	http2 "VoteGolang/internals/controller/http"
 	candidate_data2 "VoteGolang/internals/domain"
 	"VoteGolang/internals/usecases/candidate_usecase"
 	"encoding/json"
