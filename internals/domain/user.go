@@ -1,4 +1,4 @@
-package user_data
+package domain
 
 import (
 	"time"
@@ -17,4 +17,13 @@ type User struct {
 	DeletedAt    gorm.DeletedAt `json:"-" swaggerignore:"true"`
 	CreatedAt    time.Time      `gorm:"autoCreateTime" swaggerignore:"true"`
 	UpdatedAt    time.Time      `gorm:"autoUpdateTime"`
+}
+
+// UserRepository handles database operations related to users.
+type UserRepository interface {
+	Create(user *User) error
+	GetByID(id uint) (*User, error)
+	GetByUsername(username string) (*User, error)
+	Update(user *User) error
+	Delete(id uint) error
 }

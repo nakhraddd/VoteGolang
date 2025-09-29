@@ -52,7 +52,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/candidate_data.Candidate"
+                                "$ref": "#/definitions/candidate.Candidate"
                             }
                         }
                     },
@@ -100,7 +100,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/candidate_data.Candidate"
+                                "$ref": "#/definitions/candidate.Candidate"
                             }
                         }
                     },
@@ -130,7 +130,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Login and get access token",
+                "summary": "Login and get access tokens",
                 "parameters": [
                     {
                         "description": "Username and Password",
@@ -138,7 +138,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth_data.AuthRequest"
+                            "$ref": "#/definitions/auth.AuthRequest"
                         }
                     }
                 ],
@@ -181,7 +181,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/petition_data.Petition"
+                                "$ref": "#/definitions/petition.Petition"
                             }
                         }
                     }
@@ -208,7 +208,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/petition_data.Petition"
+                                "$ref": "#/definitions/petition.Petition"
                             }
                         }
                     }
@@ -231,15 +231,15 @@ const docTemplate = `{
                 "tags": [
                     "Petition"
                 ],
-                "summary": "Create a petition_data",
+                "summary": "Create a petition",
                 "parameters": [
                     {
                         "description": "Petition Data",
-                        "name": "petition_data",
+                        "name": "petition",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/petition_data.Petition"
+                            "$ref": "#/definitions/petition.Petition"
                         }
                     }
                 ],
@@ -269,21 +269,21 @@ const docTemplate = `{
                 "tags": [
                     "Petition"
                 ],
-                "summary": "Vote on a petition_data",
+                "summary": "Vote on a petition",
                 "parameters": [
                     {
-                        "description": "Petition petition_data data",
+                        "description": "Petition petition data",
                         "name": "petitionVote",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/petition_data.PetitionVoteRequest"
+                            "$ref": "#/definitions/petition.PetitionVoteRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Voted on petition_data",
+                        "description": "Voted on petition",
                         "schema": {
                             "type": "string"
                         }
@@ -316,7 +316,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth_data.AuthRequest"
+                            "$ref": "#/definitions/auth.AuthRequest"
                         }
                     }
                 ],
@@ -356,11 +356,11 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "Candidate vote data",
-                        "name": "candidate_data",
+                        "name": "candidate",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/candidate_data.VoteRequest"
+                            "$ref": "#/definitions/candidate.VoteRequest"
                         }
                     }
                 ],
@@ -372,7 +372,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request format or duplicate petition_data",
+                        "description": "Invalid request format or duplicate petition",
                         "schema": {
                             "type": "string"
                         }
@@ -388,7 +388,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "auth_data.AuthRequest": {
+        "auth.AuthRequest": {
             "type": "object",
             "properties": {
                 "password": {
@@ -399,7 +399,7 @@ const docTemplate = `{
                 }
             }
         },
-        "candidate_data.Candidate": {
+        "candidate.Candidate": {
             "type": "object",
             "properties": {
                 "age": {
@@ -424,7 +424,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "$ref": "#/definitions/candidate_data.CandidateType"
+                    "$ref": "#/definitions/candidate.CandidateType"
                 },
                 "votes": {
                     "type": "integer"
@@ -439,7 +439,7 @@ const docTemplate = `{
                 }
             }
         },
-        "candidate_data.CandidateType": {
+        "candidate.CandidateType": {
             "type": "string",
             "enum": [
                 "presidential",
@@ -452,7 +452,7 @@ const docTemplate = `{
                 "Manager"
             ]
         },
-        "candidate_data.VoteRequest": {
+        "candidate.VoteRequest": {
             "type": "object",
             "properties": {
                 "candidate_id": {
@@ -469,7 +469,7 @@ const docTemplate = `{
                 }
             }
         },
-        "petition_data.Petition": {
+        "petition.Petition": {
             "type": "object",
             "properties": {
                 "description": {
@@ -490,7 +490,7 @@ const docTemplate = `{
                 }
             }
         },
-        "petition_data.PetitionVoteRequest": {
+        "petition.PetitionVoteRequest": {
             "type": "object",
             "properties": {
                 "petition_id": {
@@ -500,14 +500,14 @@ const docTemplate = `{
                     "description": "Enum values: favor, against",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/petition_data.VoteType"
+                            "$ref": "#/definitions/petition.VoteType"
                         }
                     ],
                     "example": "favor, against"
                 }
             }
         },
-        "petition_data.VoteType": {
+        "petition.VoteType": {
             "type": "string",
             "enum": [
                 "favor",

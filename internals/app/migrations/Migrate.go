@@ -1,9 +1,7 @@
 package migrations
 
 import (
-	"VoteGolang/internals/data/candidate_data"
-	"VoteGolang/internals/data/petition_data"
-	"VoteGolang/internals/data/user_data"
+	candidate_data2 "VoteGolang/internals/domain"
 	"fmt"
 	"log"
 	"os"
@@ -86,11 +84,11 @@ func MigrateAllTables(db *gorm.DB) error {
 		name  string
 		model interface{}
 	}{
-		{"user", &user_data.User{}},
-		{"candidate", &candidate_data.Candidate{}},
-		{"petition_data", &petition_data.Petition{}},
-		{"petition_vote", &petition_data.PetitionVote{}},
-		{"petition_data", &candidate_data.Vote{}},
+		{"user", &candidate_data2.User{}},
+		{"candidate", &candidate_data2.Candidate{}},
+		{"petition", &candidate_data2.Petition{}},
+		{"petition_vote", &candidate_data2.PetitionVote{}},
+		{"petition", &candidate_data2.Vote{}},
 	}
 
 	for _, m := range models {

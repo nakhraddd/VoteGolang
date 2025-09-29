@@ -1,24 +1,24 @@
 package candidate_routes
 
 import (
-	"VoteGolang/internals/data/candidate_data"
+	http2 "VoteGolang/internals/deliveries/http"
+	candidate_data2 "VoteGolang/internals/domain"
 	"VoteGolang/internals/usecases/candidate_usecase"
-	"VoteGolang/internals/utils"
-	"VoteGolang/pkg/domain"
 	"encoding/json"
-	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 type CandidateHandler struct {
 	UseCase      *candidate_usecase.CandidateUseCase
-	TokenManager *domain.JwtToken
+	TokenManager *candidate_data2.JwtToken
 }
 
-func NewCandidateHandler(uc *candidate_usecase.CandidateUseCase, tokenManager *domain.JwtToken) *CandidateHandler {
+func NewCandidateHandler(uc *candidate_usecase.CandidateUseCase, tokenManager *candidate_data2.JwtToken) *CandidateHandler {
 	return &CandidateHandler{
 		UseCase:      uc,
 		TokenManager: tokenManager,
@@ -30,7 +30,7 @@ func NewCandidateHandler(uc *candidate_usecase.CandidateUseCase, tokenManager *d
 // @Produce json
 // @Param type query string true "Candidate Type"
 // @Security BearerAuth
-// @Success 200 {array} candidate_data.Candidate "List of candidates"
+// @Success 200 {array} candidate.Candidate "List of candidates"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /candidates [get]
@@ -67,7 +67,7 @@ func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param type query string true "Candidate Type"
 // @Security BearerAuth
-// @Success 200 {array} candidate_data.Candidate "List of candidates"
+// @Success 200 {array} candidate.Candidate "List of candidates"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /candidates/ [get]
@@ -124,24 +124,24 @@ func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Re
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param candidate_data body candidate_data.VoteRequest true "Candidate vote data"
+// @Param candidate body candidate.VoteRequest true "Candidate vote data"
 // @Success 200 {string} string "Vote successful"
-// @Failure 400 {string} string "Invalid request format or duplicate petition_data"
+// @Failure 400 {string} string "Invalid request format or duplicate petition"
 // @Failure 401 {string} string "Unauthorized"
 // @Router /vote [post]
 func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
-	token, err := utils.ExtractTokenFromRequest(r)
+	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
-		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
+		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
 		return
 	}
 
-	payload := &domain.JwtClaims{}
+	payload := &candidate_data2.JwtClaims{}
 	_, err = jwt.ParseWithClaims(token, payload, func(t *jwt.Token) (interface{}, error) {
 		return h.TokenManager.Secret, nil
 	})
 	if err != nil {
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		http.Error(w, "Invalid tokens", http.StatusUnauthorized)
 		return
 	}
 
@@ -151,20 +151,15 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if userID == 0 {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+	log.Printf("User ID from tokens: %s", userID)
 
-	log.Printf("User ID from token: %s", userID)
-
-	var req candidate_data.VoteRequest
+	var req candidate_data2.VoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request format", http.StatusBadRequest)
 		return
 	}
 
-	err = h.UseCase.Vote(req.CandidateID, userID, candidate_data.CandidateType(req.CandidateType))
+	err = h.UseCase.Vote(req.CandidateID, userID, candidate_data2.CandidateType(req.CandidateType))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

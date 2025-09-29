@@ -1,54 +1,52 @@
 package petittion_usecase
 
 import (
-	"VoteGolang/internals/data/petition_data"
-	"VoteGolang/internals/repositories/petition_repository"
-	"VoteGolang/internals/repositories/votes_repositories"
+	petition_data2 "VoteGolang/internals/domain"
 	"fmt"
 	"time"
 )
 
-// PetitionUseCase manages petition_data creation and retrieval.
+// PetitionUseCase manages petition creation and retrieval.
 type PetitionUseCase interface {
-	// CreatePetition allows a user to create a new petition_data.
-	CreatePetition(p *petition_data.Petition) error
+	// CreatePetition allows a user to create a new petition.
+	CreatePetition(p *petition_data2.Petition) error
 	// GetAllPetitions returns all active petitions.
-	GetAllPetitions() ([]petition_data.Petition, error)
-	GetPetitionByID(id uint) (*petition_data.Petition, error)
-	Vote(userID uint, petitionID uint, voteType petition_data.VoteType) error
+	GetAllPetitions() ([]petition_data2.Petition, error)
+	GetPetitionByID(id uint) (*petition_data2.Petition, error)
+	Vote(userID uint, petitionID uint, voteType petition_data2.VoteType) error
 	DeletePetition(id uint) error
 	HasUserVoted(userID uint, petitionID uint) (bool, error)
-	GetAllPetitionsPaginated(limit, offset int) ([]petition_data.Petition, error)
+	GetAllPetitionsPaginated(limit, offset int) ([]petition_data2.Petition, error)
 }
 
 type petitionUseCase struct {
-	petitionRepo     petition_repository.PetitionRepository
-	petitionVoteRepo votes_repositories.PetitionVoteRepository
+	petitionRepo     petition_data2.PetitionRepository
+	petitionVoteRepo petition_data2.PetitionVoteRepository
 }
 
-func NewPetitionUseCase(pr petition_repository.PetitionRepository, pvr votes_repositories.PetitionVoteRepository) PetitionUseCase {
+func NewPetitionUseCase(pr petition_data2.PetitionRepository, pvr petition_data2.PetitionVoteRepository) PetitionUseCase {
 	return &petitionUseCase{
 		petitionRepo:     pr,
 		petitionVoteRepo: pvr,
 	}
 }
-func (uc *petitionUseCase) GetAllPetitionsPaginated(limit, offset int) ([]petition_data.Petition, error) {
+func (uc *petitionUseCase) GetAllPetitionsPaginated(limit, offset int) ([]petition_data2.Petition, error) {
 	return uc.petitionRepo.GetAllPaginated(limit, offset)
 }
 
-func (uc *petitionUseCase) CreatePetition(p *petition_data.Petition) error {
+func (uc *petitionUseCase) CreatePetition(p *petition_data2.Petition) error {
 	return uc.petitionRepo.Create(p)
 }
 
-func (uc *petitionUseCase) GetAllPetitions() ([]petition_data.Petition, error) {
+func (uc *petitionUseCase) GetAllPetitions() ([]petition_data2.Petition, error) {
 	return uc.petitionRepo.GetAll()
 }
 
-func (uc *petitionUseCase) GetPetitionByID(id uint) (*petition_data.Petition, error) {
+func (uc *petitionUseCase) GetPetitionByID(id uint) (*petition_data2.Petition, error) {
 	return uc.petitionRepo.GetByID(id)
 }
 
-func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType petition_data.VoteType) error {
+func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType petition_data2.VoteType) error {
 	voted, err := uc.petitionVoteRepo.HasUserVoted(userID, petitionID)
 	if err != nil {
 		return err
@@ -62,8 +60,8 @@ func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType petition_
 		return err
 	}
 
-	if !petition_data.IsValidVoteType(string(voteType)) {
-		return fmt.Errorf("invalid petition_data type: must be 'favor' or 'against'")
+	if !petition_data2.IsValidVoteType(string(voteType)) {
+		return fmt.Errorf("invalid petition type: must be 'favor' or 'against'")
 	}
 
 	if time.Now().After(petition.VotingDeadline) {
@@ -72,10 +70,10 @@ func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType petition_
 
 	totalVotes := petition.VotesInFavor + petition.VotesAgainst
 	if totalVotes >= petition.Goal {
-		return fmt.Errorf("petition_data goal has been reached")
+		return fmt.Errorf("petition goal has been reached")
 	}
 
-	vote := &petition_data.PetitionVote{
+	vote := &petition_data2.PetitionVote{
 		UserID:     userID,
 		PetitionID: petitionID,
 		VoteType:   voteType,
@@ -87,12 +85,12 @@ func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType petition_
 	}
 
 	switch voteType {
-	case petition_data.Favor:
+	case petition_data2.Favor:
 		return uc.petitionRepo.VoteInFavor(petitionID)
-	case petition_data.Against:
+	case petition_data2.Against:
 		return uc.petitionRepo.VoteAgainst(petitionID)
 	default:
-		return fmt.Errorf("invalid petition_data type")
+		return fmt.Errorf("invalid petition type")
 	}
 
 }

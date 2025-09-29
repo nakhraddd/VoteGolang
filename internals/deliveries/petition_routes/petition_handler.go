@@ -1,52 +1,52 @@
 package petition_routes
 
 import (
-	"VoteGolang/internals/data/petition_data"
+	http2 "VoteGolang/internals/deliveries/http"
+	petition_data2 "VoteGolang/internals/domain"
 	"VoteGolang/internals/usecases/petittion_usecase"
-	"VoteGolang/internals/utils"
-	"VoteGolang/pkg/domain"
 	"encoding/json"
-	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 type PetitionHandler struct {
 	usecase      petittion_usecase.PetitionUseCase
-	TokenManager *domain.JwtToken
+	TokenManager *petition_data2.JwtToken
 }
 
-func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager *domain.JwtToken) *PetitionHandler {
+func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager *petition_data2.JwtToken) *PetitionHandler {
 	return &PetitionHandler{
 		usecase:      usecase,
 		TokenManager: tokenManager,
 	}
 }
 
-// @Summary Create a petition_data
+// @Summary Create a petition
 // @Tags Petition
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param petition_data body petition_data.Petition true "Petition Data"
+// @Param petition body petition.Petition true "Petition Data"
 // @Success 200 {string} string "Petition created"
 // @Router /petition/create [post]
 func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request) {
-	token, err := utils.ExtractTokenFromRequest(r)
+	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
-		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
+		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
 		return
 	}
 
-	payload := &domain.JwtClaims{}
+	payload := &petition_data2.JwtClaims{}
 	_, err = jwt.ParseWithClaims(token, payload, func(t *jwt.Token) (interface{}, error) {
 		return h.TokenManager.Secret, nil
 	})
 
 	if err != nil {
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		http.Error(w, "Invalid tokens", http.StatusUnauthorized)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var p petition_data.Petition
+	var p petition_data2.Petition
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -76,7 +76,7 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 // @Tags Petition
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} petition_data.Petition
+// @Success 200 {array} petition.Petition
 // @Router /petition/all [get]
 func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request) {
 	limitStr := r.URL.Query().Get("limit")
@@ -103,7 +103,7 @@ func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request
 // @Tags Petition
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} petition_data.Petition
+// @Success 200 {array} petition.Petition
 // @Router /petition/all/ [get]
 func (h *PetitionHandler) GetPetitionsByPage(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path // example: /petition/all/3
@@ -148,28 +148,28 @@ func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(petition)
 }
 
-// @Summary Vote on a petition_data
+// @Summary Vote on a petition
 // @Tags Petition
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param petitionVote body petition_data.PetitionVoteRequest true "Petition petition_data data"
-// @Success 200 {string} string "Voted on petition_data"
+// @Param petitionVote body petition.PetitionVoteRequest true "Petition petition data"
+// @Success 200 {string} string "Voted on petition"
 // @Failure 400 {string} string "Bad Request"
 // @Router /petition/vote [post]
 func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
-	token, err := utils.ExtractTokenFromRequest(r)
+	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
-		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
+		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
 		return
 	}
 
-	payload := &domain.JwtClaims{}
+	payload := &petition_data2.JwtClaims{}
 	_, err = jwt.ParseWithClaims(token, payload, func(t *jwt.Token) (interface{}, error) {
 		return h.TokenManager.Secret, nil
 	})
 	if err != nil {
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		http.Error(w, "Invalid tokens", http.StatusUnauthorized)
 		return
 	}
 
@@ -179,7 +179,7 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var voteReq petition_data.PetitionVoteRequest
+	var voteReq petition_data2.PetitionVoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&voteReq); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -211,18 +211,18 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PetitionHandler) DeletePetition(w http.ResponseWriter, r *http.Request) {
-	token, err := utils.ExtractTokenFromRequest(r)
+	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
-		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
+		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
 		return
 	}
 
-	payload := &domain.JwtClaims{}
+	payload := &petition_data2.JwtClaims{}
 	_, err = jwt.ParseWithClaims(token, payload, func(t *jwt.Token) (interface{}, error) {
 		return h.TokenManager.Secret, nil
 	})
 	if err != nil {
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		http.Error(w, "Invalid tokens", http.StatusUnauthorized)
 		return
 	}
 

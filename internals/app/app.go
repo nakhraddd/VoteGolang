@@ -8,18 +8,19 @@ import (
 	"VoteGolang/internals/deliveries/candidate_routes"
 	"VoteGolang/internals/deliveries/login_routes"
 	"VoteGolang/internals/deliveries/petition_routes"
-	candidate_repo "VoteGolang/internals/repositories/candidate_repository"
-	petition3 "VoteGolang/internals/repositories/petition_repository"
-	"VoteGolang/internals/repositories/user_repository"
-	"VoteGolang/internals/repositories/votes_repositories"
+	"VoteGolang/internals/domain"
+	candidate_repo "VoteGolang/internals/infrastructure/repositories/candidate_repository"
+	petition3 "VoteGolang/internals/infrastructure/repositories/petition_repository"
+	"VoteGolang/internals/infrastructure/repositories/user_repository"
+	votes_repositories2 "VoteGolang/internals/infrastructure/repositories/votes_repositories"
 	"VoteGolang/internals/usecases/auth_usecase"
 	"VoteGolang/internals/usecases/candidate_usecase"
 	"VoteGolang/internals/usecases/petittion_usecase"
-	"VoteGolang/pkg/domain"
-	httpSwagger "github.com/swaggo/http-swagger"
-	"gorm.io/gorm"
 	"log"
 	"net/http"
+
+	httpSwagger "github.com/swaggo/http-swagger"
+	"gorm.io/gorm"
 )
 
 type App struct {
@@ -73,7 +74,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	candidateHandler := candidate_routes.NewCandidateHandler(
 		candidate_usecase.NewCandidateUseCase(
 			candidate_repo.NewCandidateRepository(a.DB),
-			votes_repositories.NewVoteRepository(a.DB),
+			votes_repositories2.NewVoteRepository(a.DB),
 		),
 		tokenManager.(*domain.JwtToken),
 	)
@@ -83,7 +84,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	petitionsHandler := petition_routes.NewPetitionHandler(
 		petittion_usecase.NewPetitionUseCase(
 			petition3.NewPetitionRepository(a.DB),
-			votes_repositories.NewPetitionVoteRepository(a.DB),
+			votes_repositories2.NewPetitionVoteRepository(a.DB),
 		),
 		tokenManager.(*domain.JwtToken),
 	)

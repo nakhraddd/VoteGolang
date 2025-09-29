@@ -1,7 +1,7 @@
 package login_routes
 
 import (
-	"VoteGolang/pkg/domain"
+	"VoteGolang/internals/domain"
 	"log"
 	"net/http"
 )

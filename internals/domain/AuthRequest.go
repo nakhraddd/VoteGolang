@@ -1,4 +1,4 @@
-package auth_data
+package domain
 
 // AuthRequest represents the body to login.
 type AuthRequest struct {

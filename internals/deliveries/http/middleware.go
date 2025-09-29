@@ -1,21 +1,15 @@
-package utils
+package middleware
 
 import (
-	"VoteGolang/pkg/domain"
+	"VoteGolang/internals/domain"
 	"context"
-	"errors"
 	"net/http"
 	"strings"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 type contextKey string
 
-const (
-	sessionKey contextKey = "session"
-	userIDKey  contextKey = "userID"
-)
+const userIDKey contextKey = "userID"
 
 func JWTMiddleware(tokenManager domain.TokenManager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -26,16 +20,15 @@ func JWTMiddleware(tokenManager domain.TokenManager) func(http.Handler) http.Han
 				return
 			}
 
-			claims := &domain.JwtClaims{}
-			_, err = jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-				return tokenManager.GetSecret(), nil
-			})
-			if err != nil || claims.UserID == 0 {
+			// TokenManager does the validation
+			userID, err := tokenManager.VerifyAccessToken(r.Context(), tokenStr)
+			if err != nil {
 				http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), userIDKey, claims.UserID)
+			// Attaching userID to context
+			ctx := context.WithValue(r.Context(), userIDKey, userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -44,12 +37,12 @@ func JWTMiddleware(tokenManager domain.TokenManager) func(http.Handler) http.Han
 func ExtractTokenFromRequest(r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
-		return "", errors.New("Authorization header missing") //must return HTTP status code 401 Unauthorized
+		return "", http.ErrNoCookie // unauthorized
 	}
 
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		return "", errors.New("Invalid Authorization header format")
+		return "", http.ErrNoCookie
 	}
 
 	return parts[1], nil

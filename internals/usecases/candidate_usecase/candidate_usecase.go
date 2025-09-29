@@ -1,37 +1,35 @@
 package candidate_usecase
 
 import (
-	"VoteGolang/internals/data/candidate_data"
-	"VoteGolang/internals/repositories/candidate_repository"
-	"VoteGolang/internals/repositories/votes_repositories"
+	candidate_data2 "VoteGolang/internals/domain"
 	"errors"
 	"time"
 )
 
 // CandidateUseCase handles business logic related to election candidates.
 type CandidateUseCase struct {
-	CandidateRepo candidate_repository.CandidateRepository
-	VoteRepo      votes_repositories.VoteRepository
+	CandidateRepo candidate_data2.CandidateRepository
+	VoteRepo      candidate_data2.VoteRepository
 }
 
-func NewCandidateUseCase(cRepo candidate_repository.CandidateRepository, vRepo votes_repositories.VoteRepository) *CandidateUseCase {
+func NewCandidateUseCase(cRepo candidate_data2.CandidateRepository, vRepo candidate_data2.VoteRepository) *CandidateUseCase {
 	return &CandidateUseCase{
 		CandidateRepo: cRepo,
 		VoteRepo:      vRepo,
 	}
 }
-func (uc *CandidateUseCase) GetAllByTypePaginated(candidateType string, limit, offset int) ([]candidate_data.Candidate, error) {
+func (uc *CandidateUseCase) GetAllByTypePaginated(candidateType string, limit, offset int) ([]candidate_data2.Candidate, error) {
 	return uc.CandidateRepo.GetAllByTypePaginated(candidateType, limit, offset)
 }
 
 // GetAllByType returns a list of candidates filtered by type.
-func (uc *CandidateUseCase) GetAllByType(candidateType string) ([]candidate_data.Candidate, error) {
+func (uc *CandidateUseCase) GetAllByType(candidateType string) ([]candidate_data2.Candidate, error) {
 	return uc.CandidateRepo.GetAllByType(candidateType)
 }
 
 // Vote votes for candidate by type, user_id, candidate_id.
-func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType candidate_data.CandidateType) error {
-	if !candidate_data.IsValidCandidateType(string(candidateType)) {
+func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType candidate_data2.CandidateType) error {
+	if !candidate_data2.IsValidCandidateType(string(candidateType)) {
 		return errors.New("invalid candidate type")
 	}
 

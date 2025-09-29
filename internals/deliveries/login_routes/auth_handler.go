@@ -1,10 +1,8 @@
 package login_routes
 
 import (
-	"VoteGolang/internals/data/auth_data"
-	"VoteGolang/internals/data/user_data"
+	"VoteGolang/internals/domain"
 	"VoteGolang/internals/usecases/auth_usecase"
-	"VoteGolang/pkg/domain"
 	"encoding/json"
 	"net/http"
 )
@@ -21,42 +19,49 @@ func NewAuthHandler(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.T
 	}
 }
 
-// @Summary Login and get access token
+// Login @Summary Login and get access tokens
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param credentials body auth_data.AuthRequest true "Username and Password"
+// @Param credentials body auth.AuthRequest true "Username and Password"
 // @Success 200 {object} map[string]string
 // @Failure 401 {string} string "Unauthorized"
 // @Router /login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req auth_data.AuthRequest
+	var req domain.AuthRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	token, err := h.authUseCase.Login(req.Username, req.Password)
+	accessToken, refreshToken, err := h.authUseCase.Login(req.Username, req.Password)
 	if err != nil {
 		http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
+	err = json.NewEncoder(w).Encode(map[string]string{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
-// @Summary Register a new user
+// Register @Summary Register a new user
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param credentials body auth_data.AuthRequest true "Username and Password"
+// @Param credentials body auth.AuthRequest true "Username and Password"
 // @Success 200 {string} string "User registered successfully"
 // @Failure 400 {string} string "Invalid Request"
 // @Router /register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var req user_data.User
+	var req domain.User
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -70,5 +75,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
+	err = json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

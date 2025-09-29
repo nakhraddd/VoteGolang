@@ -185,7 +185,7 @@ paths:
           description: Unauthorized
           schema:
             type: string
-      summary: Login and get access token
+      summary: Login and get access tokens
       tags:
       - Auth
   /petition/all:
@@ -227,7 +227,7 @@ paths:
       parameters:
       - description: Petition Data
         in: body
-        name: petition_data
+        name: petition
         required: true
         schema:
           $ref: '#/definitions/petition_data.Petition'
@@ -240,7 +240,7 @@ paths:
             type: string
       security:
       - BearerAuth: []
-      summary: Create a petition_data
+      summary: Create a petition
       tags:
       - Petition
   /petition/vote:
@@ -248,7 +248,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Petition petition_data data
+      - description: Petition petition data
         in: body
         name: petitionVote
         required: true
@@ -258,7 +258,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Voted on petition_data
+          description: Voted on petition
           schema:
             type: string
         "400":
@@ -267,7 +267,7 @@ paths:
             type: string
       security:
       - BearerAuth: []
-      summary: Vote on a petition_data
+      summary: Vote on a petition
       tags:
       - Petition
   /register:
@@ -302,7 +302,7 @@ paths:
       parameters:
       - description: Candidate vote data
         in: body
-        name: candidate_data
+        name: candidate
         required: true
         schema:
           $ref: '#/definitions/candidate_data.VoteRequest'
@@ -314,7 +314,7 @@ paths:
           schema:
             type: string
         "400":
-          description: Invalid request format or duplicate petition_data
+          description: Invalid request format or duplicate petition
           schema:
             type: string
         "401":
