@@ -65,7 +65,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	err := h.authUseCase.Register(&req)
 	if err != nil {
-		http.Error(w, "Failed to register user_repository: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to register user_repository: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
