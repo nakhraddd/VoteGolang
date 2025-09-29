@@ -11,8 +11,8 @@ services:
       - JWT_SECRET=supersecretkey
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_USER=root
-      - DB_PASS=Darhani2004
+      - DB_USER=vote_user
+      - DB_PASS=vote_password
       - DB_NAME=vote_database
     volumes:
       - .:/app
@@ -21,7 +21,7 @@ services:
     image: mysql:8.0
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: Darhani2004
+      MYSQL_ROOT_PASSWORD: $F00tba11!
       MYSQL_DATABASE: vote_database
     ports:
       - "3307:3306"

@@ -4,9 +4,10 @@ import (
 	"VoteGolang/pkg/domain"
 	"context"
 	"errors"
-	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"strings"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 type contextKey string
@@ -43,7 +44,7 @@ func JWTMiddleware(tokenManager domain.TokenManager) func(http.Handler) http.Han
 func ExtractTokenFromRequest(r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
-		return "", errors.New("Authorization header missing")
+		return "", errors.New("Authorization header missing") //must return HTTP status code 401 Unauthorized
 	}
 
 	parts := strings.Split(authHeader, " ")
