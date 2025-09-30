@@ -3,6 +3,7 @@ package auth_usecase
 import (
 	"VoteGolang/internals/domain"
 	"VoteGolang/internals/infrastructure/security"
+	"context"
 	"fmt"
 	"time"
 )
@@ -62,4 +63,35 @@ func (a *AuthUseCase) Register(user *domain.User) error {
 	}
 
 	return nil
+}
+
+//func (a *AuthUseCase) Logout(user *domain.User) error {
+//
+//}
+
+func (a *AuthUseCase) Refresh(ctx context.Context, refreshToken string) (string, string, error) {
+	// Verify refresh token
+	userID, err := a.TokenManager.VerifyRefreshToken(ctx, refreshToken)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid refresh token: %w", err)
+	}
+
+	// (Optional) If you store refresh tokens in DB/Redis, check if this one is still valid
+	// Example: if !a.UserRepo.IsRefreshTokenValid(userID, refreshToken) { return "", "", fmt.Errorf("revoked refresh token") }
+
+	// Generate new tokens
+	accessToken, err := a.TokenManager.CreateAccessToken(userID, 15*time.Minute)
+	if err != nil {
+		return "", "", err
+	}
+
+	newRefreshToken, err := a.TokenManager.CreateRefreshToken(userID, 24*time.Hour)
+	if err != nil {
+		return "", "", err
+	}
+
+	// (Optional) Save the new refresh token and revoke the old one in DB
+	// a.UserRepo.RotateRefreshToken(userID, refreshToken, newRefreshToken)
+
+	return accessToken, newRefreshToken, nil
 }

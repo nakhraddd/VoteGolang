@@ -42,9 +42,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(map[string]string{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+	err = json.NewEncoder(w).Encode(domain.TokenResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -80,4 +80,37 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+//func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+//
+//	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+//		http.Error(w, "Invalid request", http.StatusBadRequest)
+//		return
+//	}
+//
+//	err := h.authUseCase.Logout(&req)
+//	if err != nil {
+//		http.Error(w, "Failed to logout"+err.Error(), http.StatusBadRequest)
+//	}
+//}
+
+func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+	var req domain.RefreshRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	accessToken, refreshToken, err := h.authUseCase.Refresh(r.Context(), req.RefreshToken)
+	if err != nil {
+		http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(domain.TokenResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	})
 }

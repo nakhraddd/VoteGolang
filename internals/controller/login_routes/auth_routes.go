@@ -18,6 +18,11 @@ func AuthorizationRoutes(mux *http.ServeMux, authHandler *AuthHandler, tokenMana
 		logLoginRegister(w, r, "/register")
 		authHandler.Register(w, r)
 	})
+
+	mux.HandleFunc("/refresh", func(w http.ResponseWriter, r *http.Request) {
+		logLoginRegister(w, r, "/refresh")
+		authHandler.Refresh(w, r)
+	})
 }
 
 func logLoginRegister(w http.ResponseWriter, r *http.Request, route string) {
