@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -17,17 +16,12 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-		return nil
-	} // загружает переменные из .env
 	return &Config{
 		JWTSecret: getEnv("JWT_SECRET", "defaultsecret"),
 		DBHost:    getEnv("DB_HOST", "localhost"),
 		DBPort:    getEnv("DB_PORT", "3306"),
 		DBUser:    getEnv("DB_USER", "root"),
-		DBPass:    getEnv("DB_PASS", "$F00tba11!"),
+		DBPass:    getEnv("DB_PASS", "Darhani2004"),
 		DBName:    getEnv("DB_NAME", "vote_database"),
 	}
 }
