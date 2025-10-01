@@ -2,6 +2,7 @@ package main
 
 import (
 	"VoteGolang/internals/app"
+	"VoteGolang/internals/app/logging"
 	"log"
 )
 
@@ -19,9 +20,16 @@ import (
 // @in header
 // @name Authorization
 func main() {
+	kafkaLogger := logging.NewKafkaLogger("kafka:9092", "app-logs")
+	defer kafkaLogger.Close()
+
 	appInstance, authUseCase, tokenManager, err := app.NewApp()
 	if err != nil {
 		log.Fatalf("Error initializing app: %v", err)
+	}
+
+	if err := kafkaLogger.Log("App started"); err != nil {
+		log.Printf("Failed to send log to Kafka: %v", err)
 	}
 
 	appInstance.Run(authUseCase, tokenManager)
