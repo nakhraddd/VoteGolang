@@ -10,14 +10,16 @@ import (
 
 // AuthUseCase handles authentication and authorization logic.
 type AuthUseCase struct {
-	UserRepo     domain.UserRepository
-	TokenManager domain.TokenManager
+	UserRepo      domain.UserRepository
+	TokenManager  domain.TokenManager
+	EmailVerifier domain.EmailVerifier
 }
 
-func NewAuthUseCase(userRepo domain.UserRepository, tm domain.TokenManager) *AuthUseCase {
+func NewAuthUseCase(userRepo domain.UserRepository, tm domain.TokenManager, emailVerifier domain.EmailVerifier) *AuthUseCase {
 	return &AuthUseCase{
-		UserRepo:     userRepo,
-		TokenManager: tm,
+		UserRepo:      userRepo,
+		TokenManager:  tm,
+		EmailVerifier: emailVerifier,
 	}
 }
 
@@ -26,6 +28,10 @@ func (a *AuthUseCase) Login(username, password string) (string, string, error) {
 	u, err := a.UserRepo.GetByUsername(username)
 	if err != nil {
 		return "", "", fmt.Errorf("user not found")
+	}
+
+	if !u.EmailVerified {
+		return "", "", fmt.Errorf("email not verified")
 	}
 
 	if !security.CheckPasswordHash(password, u.Password) {
@@ -46,28 +52,37 @@ func (a *AuthUseCase) Login(username, password string) (string, string, error) {
 }
 
 // Register registers a new user with a hashed password.
-func (a *AuthUseCase) Register(user *domain.User) error {
-
+func (a *AuthUseCase) Register(ctx context.Context, user *domain.User) (string, string, error) {
+	if user.Username == "" {
+		return "", "", fmt.Errorf("username is required")
+	}
+	if user.Email == "" {
+		return "", "", fmt.Errorf("email is required")
+	}
+	if user.Password == "" {
+		return "", "", fmt.Errorf("password is required")
+	}
 	if err := security.ValidatePassword(user.Password); err != nil {
-		return err
+		return "", "", err
 	}
 	hashedPassword, err := security.HashPassword(user.Password)
 	if err != nil {
-		return fmt.Errorf("failed to hash password: %v", err)
+		return "", "", fmt.Errorf("failed to hash password: %v", err)
 	}
 	user.Password = hashedPassword
 
 	err = a.UserRepo.Create(user)
 	if err != nil {
-		return fmt.Errorf("failed to register user_repository: %v", err)
+		return "", "", fmt.Errorf("failed to register user_repository: %v", err)
 	}
 
-	return nil
-}
+	link, token, err := a.EmailVerifier.SendVerificationMail(ctx, user.Email)
+	if err != nil {
+		return "", "", err
+	}
 
-//func (a *AuthUseCase) Logout(user *domain.User) error {
-//
-//}
+	return link, token, nil
+}
 
 func (a *AuthUseCase) Refresh(ctx context.Context, refreshToken string) (string, string, error) {
 	// Verify refresh token
@@ -94,4 +109,24 @@ func (a *AuthUseCase) Refresh(ctx context.Context, refreshToken string) (string,
 	// a.UserRepo.RotateRefreshToken(userID, refreshToken, newRefreshToken)
 
 	return accessToken, newRefreshToken, nil
+}
+
+func (a *AuthUseCase) VerifyEmail(ctx context.Context, token string) error {
+	email, err := a.EmailVerifier.VerifyEmail(ctx, token)
+	if err != nil {
+		return fmt.Errorf("invalid or expired verification token: %v", err)
+	}
+
+	// нужно найти юзера по email
+	user, err := a.UserRepo.GetByEmail(email)
+	if err != nil {
+		return fmt.Errorf("user not found: %v", err)
+	}
+
+	err = a.UserRepo.MarkEmailVerified(ctx, user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to mark email verified: %v", err)
+	}
+
+	return nil
 }

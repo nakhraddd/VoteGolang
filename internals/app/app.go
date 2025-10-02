@@ -9,6 +9,7 @@ import (
 	"VoteGolang/internals/controller/login_routes"
 	"VoteGolang/internals/controller/petition_routes"
 	"VoteGolang/internals/domain"
+	"VoteGolang/internals/infrastructure/email"
 	candidate_repo "VoteGolang/internals/infrastructure/repositories/candidate_repository"
 	petition3 "VoteGolang/internals/infrastructure/repositories/petition_repository"
 	"VoteGolang/internals/infrastructure/repositories/user_repository"
@@ -16,9 +17,12 @@ import (
 	"VoteGolang/internals/usecases/auth_usecase"
 	"VoteGolang/internals/usecases/candidate_usecase"
 	"VoteGolang/internals/usecases/petittion_usecase"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/redis/go-redis/v9"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"gorm.io/gorm"
 )
@@ -48,7 +52,16 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
 
 	userRepo := user_repository.NewUserRepository(db)
 	tokenManager := domain.NewJwtToken(config.JWTSecret)
-	authUseCase := auth_usecase.NewAuthUseCase(userRepo, tokenManager)
+	// создаем Redis клиент
+	rdb := redis.NewClient(&redis.Options{
+		Addr: fmt.Sprintf("%v:%v", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
+		//Password: "", // если есть пароль - укажи
+		DB: 0,
+	})
+
+	// создаем EmailVerifier
+	emailVerifier := email.NewRedisEmailVerifier(rdb)
+	authUseCase := auth_usecase.NewAuthUseCase(userRepo, tokenManager, emailVerifier)
 
 	return app, authUseCase, tokenManager, nil
 }

@@ -4,6 +4,7 @@ import (
 	"VoteGolang/internals/domain"
 	"VoteGolang/internals/usecases/auth_usecase"
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -68,32 +69,20 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.authUseCase.Register(&req)
+	link, token, err := h.authUseCase.Register(r.Context(), &req)
 	if err != nil {
 		http.Error(w, "Failed to register user_repository: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	err = json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
+	err = json.NewEncoder(w).Encode(map[string]string{
+		"message": "User registered successfully", "verify_link": link, "verify_token": token})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
-
-//func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-//
-//	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-//		http.Error(w, "Invalid request", http.StatusBadRequest)
-//		return
-//	}
-//
-//	err := h.authUseCase.Logout(&req)
-//	if err != nil {
-//		http.Error(w, "Failed to logout"+err.Error(), http.StatusBadRequest)
-//	}
-//}
 
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req domain.RefreshRequest
@@ -113,4 +102,29 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	})
+}
+
+func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		http.Error(w, "missing token", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	err := h.authUseCase.VerifyEmail(ctx, token)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("verification failed: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(map[string]string{
+		"message": "Email verified successfully!",
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

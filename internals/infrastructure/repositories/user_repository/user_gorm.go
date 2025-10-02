@@ -2,6 +2,7 @@ package user_repository
 
 import (
 	"VoteGolang/internals/domain"
+	"context"
 
 	"gorm.io/gorm"
 )
@@ -36,10 +37,27 @@ func (r *userGormRepository) GetByUsername(username string) (*domain.User, error
 	return &user, nil
 }
 
+func (r *userGormRepository) GetByEmail(email string) (*domain.User, error) {
+	var user domain.User
+	err := r.db.First(&user, "email = ?", email).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *userGormRepository) Update(user *domain.User) error {
 	return r.db.Save(user).Error
 }
 
 func (r *userGormRepository) Delete(id uint) error {
 	return r.db.Delete(&domain.User{}, "id = ?", id).Error
+}
+
+func (r *userGormRepository) MarkEmailVerified(ctx context.Context, userID uint) error {
+	return r.db.WithContext(ctx).
+		Model(&domain.User{}).
+		Where("id = ?", userID).
+		Update("email_verified", true).
+		Error
 }
