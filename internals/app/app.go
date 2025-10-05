@@ -63,6 +63,9 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
 	emailVerifier := email.NewRedisEmailVerifier(rdb)
 	authUseCase := auth_usecase.NewAuthUseCase(userRepo, tokenManager, emailVerifier)
 
+	// start clean up of unverified users
+	email.StartUnverifiedCleanupJob(userRepo)
+
 	return app, authUseCase, tokenManager, nil
 }
 

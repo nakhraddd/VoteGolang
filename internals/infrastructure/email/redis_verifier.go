@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net/smtp"
 	"os"
 	"time"
@@ -68,6 +69,7 @@ func (r *RedisEmailVerifier) SendVerificationMail(ctx context.Context, email str
 	}
 	w, err := c.Data()
 	if err != nil {
+		log.Println(err.Error())
 		return "", "", err
 	}
 

@@ -3,6 +3,7 @@ package user_repository
 import (
 	"VoteGolang/internals/domain"
 	"context"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -60,4 +61,12 @@ func (r *userGormRepository) MarkEmailVerified(ctx context.Context, userID uint)
 		Where("id = ?", userID).
 		Update("email_verified", true).
 		Error
+}
+
+func (r *userGormRepository) DeleteUnverifiedUser(cutoff time.Time) (int64, error) {
+	result := r.db.
+		Unscoped().
+		Where("email_verified = ? AND created_at < ?", false, cutoff).
+		Delete(&domain.User{})
+	return result.RowsAffected, result.Error
 }

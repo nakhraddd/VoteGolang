@@ -31,4 +31,5 @@ type UserRepository interface {
 	Delete(id uint) error
 	MarkEmailVerified(ctx context.Context, userID uint) error
 	GetByEmail(email string) (*User, error)
+	DeleteUnverifiedUser(cutoff time.Time) (int64, error)
 }
