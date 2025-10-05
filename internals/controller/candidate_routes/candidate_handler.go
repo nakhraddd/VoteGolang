@@ -2,6 +2,7 @@ package candidate_routes
 
 import (
 	http2 "VoteGolang/internals/controller/http"
+	"VoteGolang/internals/controller/http/response"
 	candidate_data2 "VoteGolang/internals/domain"
 	"VoteGolang/internals/usecases/candidate_usecase"
 	"encoding/json"
@@ -37,7 +38,7 @@ func NewCandidateHandler(uc *candidate_usecase.CandidateUseCase, tokenManager *c
 func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	typ := r.URL.Query().Get("type")
 	if typ == "" {
-		http.Error(w, "type is required", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Type is required", nil)
 		return
 	}
 
@@ -55,11 +56,11 @@ func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	candidates, err := h.UseCase.GetAllByTypePaginated(typ, limit, offset)
 	if err != nil {
-		http.Error(w, "failed to get candidates", http.StatusInternalServerError)
+		response.JSON(w, http.StatusInternalServerError, false, "failed to get candidates", err.Error())
 		return
 	}
 
-	json.NewEncoder(w).Encode(candidates)
+	response.JSON(w, http.StatusOK, true, "Candidates retrieved successfully", candidates)
 }
 
 // @Summary Get candidates by type by page
@@ -75,7 +76,7 @@ func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Re
 	// Get 'type' query parameter
 	typ := r.URL.Query().Get("type")
 	if typ == "" {
-		http.Error(w, "type is required", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Type is required", nil)
 		return
 	}
 
@@ -83,14 +84,14 @@ func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Re
 	path := r.URL.Path // example: /candidates/1
 	parts := strings.Split(path, "/")
 	if len(parts) < 3 {
-		http.Error(w, "Page number required", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Page number required", nil)
 		return
 	}
 
 	pageStr := parts[len(parts)-1] // Get the last part which is the page number
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page <= 0 {
-		http.Error(w, "Invalid page number", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Invalid page number", nil)
 		return
 	}
 
@@ -100,7 +101,7 @@ func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Re
 	if limitStr != "" {
 		limit, err = strconv.Atoi(limitStr)
 		if err != nil || limit <= 0 {
-			http.Error(w, "Invalid limit", http.StatusBadRequest)
+			response.JSON(w, http.StatusBadRequest, false, "Invalid limit", nil)
 			return
 		}
 	}
@@ -111,12 +112,12 @@ func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Re
 	// Get candidates using the paginated use case method
 	candidates, err := h.UseCase.GetAllByTypePaginated(typ, limit, offset)
 	if err != nil {
-		http.Error(w, "Failed to get candidates", http.StatusInternalServerError)
+		response.JSON(w, http.StatusInternalServerError, false, "Failed to get candidates", err.Error())
 		return
 	}
 
 	// Return the candidates
-	json.NewEncoder(w).Encode(candidates)
+	response.JSON(w, http.StatusOK, true, "Candidates retrieved successfully", candidates)
 }
 
 // @Summary Vote for a candidate
@@ -132,7 +133,7 @@ func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Re
 func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
-		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, authorization tokens missing: "+err.Error(), nil)
 		return
 	}
 
@@ -141,13 +142,13 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return h.TokenManager.Secret, nil
 	})
 	if err != nil {
-		http.Error(w, "Invalid tokens", http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, invalid tokens: "+err.Error(), nil)
 		return
 	}
 
 	userID := payload.UserID
 	if userID == 0 {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, invalid userID", nil)
 		return
 	}
 
@@ -155,15 +156,15 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 
 	var req candidate_data2.VoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request format", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Invalid request format: "+err.Error(), nil)
 		return
 	}
 
 	err = h.UseCase.Vote(req.CandidateID, userID, candidate_data2.CandidateType(req.CandidateType))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Failed to vote: "+err.Error(), nil)
 		return
 	}
 
-	w.Write([]byte("Vote successful"))
+	response.JSON(w, http.StatusOK, true, "Vote successfully", nil)
 }
