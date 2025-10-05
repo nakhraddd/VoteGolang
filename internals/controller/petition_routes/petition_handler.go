@@ -1,10 +1,12 @@
 package petition_routes
 
 import (
+	"VoteGolang/internals/app/logging"
 	http2 "VoteGolang/internals/controller/http"
 	petition_data2 "VoteGolang/internals/domain"
 	"VoteGolang/internals/usecases/petittion_usecase"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,12 +18,14 @@ import (
 type PetitionHandler struct {
 	usecase      petittion_usecase.PetitionUseCase
 	TokenManager *petition_data2.JwtToken
+	KafkaLogger  *logging.KafkaLogger
 }
 
-func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager *petition_data2.JwtToken) *PetitionHandler {
+func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager *petition_data2.JwtToken, kafkaLogger *logging.KafkaLogger) *PetitionHandler {
 	return &PetitionHandler{
 		usecase:      usecase,
 		TokenManager: tokenManager,
+		KafkaLogger:  kafkaLogger,
 	}
 }
 
@@ -34,6 +38,7 @@ func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager 
 // @Success 200 {string} string "Petition created"
 // @Router /petition/create [post]
 func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request) {
+	h.KafkaLogger.Log(fmt.Sprintf("Petition create attempt from %s", r.RemoteAddr))
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
 		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
@@ -70,6 +75,7 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 	}
 
 	json.NewEncoder(w).Encode(p)
+	h.KafkaLogger.Log(fmt.Sprintf("Petition created by user %d: %s", userID, p.Title))
 }
 
 // @Summary Get all petitions
@@ -158,6 +164,7 @@ func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request
 // @Failure 400 {string} string "Bad Request"
 // @Router /petition/vote [post]
 func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
+	h.KafkaLogger.Log(fmt.Sprintf("Petition vote attempt from %s", r.RemoteAddr))
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
 		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
@@ -208,9 +215,11 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	h.KafkaLogger.Log(fmt.Sprintf("Petition vote success: user %d voted on petition %d", userID, voteReq.PetitionID))
 }
 
 func (h *PetitionHandler) DeletePetition(w http.ResponseWriter, r *http.Request) {
+	h.KafkaLogger.Log(fmt.Sprintf("Petition delete attempt from %s", r.RemoteAddr))
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
 		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
@@ -240,4 +249,5 @@ func (h *PetitionHandler) DeletePetition(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(http.StatusOK)
+	h.KafkaLogger.Log(fmt.Sprintf("Petition deleted: %d", id))
 }

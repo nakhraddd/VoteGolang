@@ -4,6 +4,7 @@ import (
 	"VoteGolang/conf"
 	_ "VoteGolang/docs" // ← This is important for registering the generated Swagger docs
 	"VoteGolang/internals/app/connect"
+	"VoteGolang/internals/app/logging"
 	"VoteGolang/internals/app/migrations"
 	"VoteGolang/internals/controller/candidate_routes"
 	"VoteGolang/internals/controller/login_routes"
@@ -69,22 +70,27 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
 	return app, authUseCase, tokenManager, nil
 }
 
-func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.TokenManager) {
+func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.TokenManager, kafkaLogger *logging.KafkaLogger) {
 	log.Println("Starting server on port 8080...")
 
 	mux := http.NewServeMux()
+
+	// Middleware to log every request
+	logMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			kafkaLogger.Log(
+				fmt.Sprintf("Accessed %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr),
+			)
+			next.ServeHTTP(w, r)
+		})
+	}
 
 	// Swagger UI route
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	//auth
-	authHandler := login_routes.NewAuthHandler(authUseCase, tokenManager)
-	login_routes.AuthorizationRoutes(mux, authHandler, tokenManager)
-
-	_, ok := tokenManager.(domain.TokenManager)
-	if !ok {
-		log.Fatal("Token manager is not of type *auth.JwtTokenManager")
-	}
+	authHandler := login_routes.NewAuthHandler(authUseCase, tokenManager, kafkaLogger)
+	login_routes.AuthorizationRoutes(mux, authHandler, tokenManager, kafkaLogger)
 
 	// Candidate
 	candidateHandler := candidate_routes.NewCandidateHandler(
@@ -93,6 +99,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 			votes_repositories2.NewVoteRepository(a.DB),
 		),
 		tokenManager.(*domain.JwtToken),
+		kafkaLogger,
 	)
 	candidate_routes.RegisterCandidateRoutes(mux, candidateHandler, tokenManager)
 
@@ -103,18 +110,20 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 			votes_repositories2.NewPetitionVoteRepository(a.DB),
 		),
 		tokenManager.(*domain.JwtToken),
+		kafkaLogger,
 	)
 	petition_routes.RegisterPetitionRoutes(mux, petitionsHandler, tokenManager)
 
 	// fallback for unknown routes
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		kafkaLogger.Log(fmt.Sprintf("Unknown route accessed: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr))
 		w.WriteHeader(http.StatusNotFound)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"error": "route not found"}`))
 	})
 
-	//start
-	err := http.ListenAndServe(":8080", mux)
+	// Wrap mux with logging middleware
+	err := http.ListenAndServe(":8080", logMiddleware(mux))
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}

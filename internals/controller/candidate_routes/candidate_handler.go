@@ -1,10 +1,12 @@
 package candidate_routes
 
 import (
+	"VoteGolang/internals/app/logging"
 	http2 "VoteGolang/internals/controller/http"
 	candidate_data2 "VoteGolang/internals/domain"
 	"VoteGolang/internals/usecases/candidate_usecase"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,14 +16,16 @@ import (
 )
 
 type CandidateHandler struct {
-	UseCase      *candidate_usecase.CandidateUseCase
+	UseCase      *candidate_usecase.CandidateUseCase // <-- pointer type
 	TokenManager *candidate_data2.JwtToken
+	KafkaLogger  *logging.KafkaLogger
 }
 
-func NewCandidateHandler(uc *candidate_usecase.CandidateUseCase, tokenManager *candidate_data2.JwtToken) *CandidateHandler {
+func NewCandidateHandler(useCase *candidate_usecase.CandidateUseCase, tokenManager *candidate_data2.JwtToken, kafkaLogger *logging.KafkaLogger) *CandidateHandler {
 	return &CandidateHandler{
-		UseCase:      uc,
+		UseCase:      useCase,
 		TokenManager: tokenManager,
+		KafkaLogger:  kafkaLogger,
 	}
 }
 
@@ -130,6 +134,8 @@ func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Re
 // @Failure 401 {string} string "Unauthorized"
 // @Router /vote [post]
 func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
+	h.KafkaLogger.Log(fmt.Sprintf("Candidate vote attempt from %s", r.RemoteAddr))
+
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
 		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
@@ -164,6 +170,8 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	h.KafkaLogger.Log(fmt.Sprintf("Candidate vote success: user %d voted for candidate %d", userID, req.CandidateID))
 
 	w.Write([]byte("Vote successful"))
 }

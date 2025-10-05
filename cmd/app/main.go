@@ -32,5 +32,5 @@ func main() {
 		log.Printf("Failed to send log to Kafka: %v", err)
 	}
 
-	appInstance.Run(authUseCase, tokenManager)
+	appInstance.Run(authUseCase, tokenManager, kafkaLogger)
 }

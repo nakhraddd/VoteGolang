@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: pass123!
+      MYSQL_ROOT_PASSWORD: Darhani2004
       MYSQL_DATABASE: vote_database
       MYSQL_USER: vote_user
       MYSQL_PASSWORD: pass123!
