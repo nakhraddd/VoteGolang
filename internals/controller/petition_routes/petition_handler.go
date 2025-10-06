@@ -3,6 +3,7 @@ package petition_routes
 import (
 	"VoteGolang/internals/app/logging"
 	http2 "VoteGolang/internals/controller/http"
+	"VoteGolang/internals/controller/http/response"
 	petition_data2 "VoteGolang/internals/domain"
 	"VoteGolang/internals/usecases/petittion_usecase"
 	"encoding/json"
@@ -41,7 +42,7 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 	h.KafkaLogger.Log(fmt.Sprintf("Petition create attempt from %s", r.RemoteAddr))
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
-		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
 		return
 	}
 
@@ -51,30 +52,30 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 	})
 
 	if err != nil {
-		http.Error(w, "Invalid tokens", http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, invalid tokens: "+err.Error(), nil)
 		return
 	}
 
 	userID := payload.UserID
 	if userID == 0 {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, invalid userID", nil)
 		return
 	}
 
 	var p petition_data2.Petition
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Invalid request body: "+err.Error(), nil)
 		return
 	}
 
 	p.UserID = userID
 
 	if err := h.usecase.CreatePetition(&p); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.JSON(w, http.StatusInternalServerError, false, "Failed to create petition: "+err.Error(), nil)
 		return
 	}
 
-	json.NewEncoder(w).Encode(p)
+	response.JSON(w, http.StatusCreated, true, "Petition created successfully", p)
 	h.KafkaLogger.Log(fmt.Sprintf("Petition created by user %d: %s", userID, p.Title))
 }
 
@@ -99,10 +100,10 @@ func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request
 
 	petitions, err := h.usecase.GetAllPetitionsPaginated(limit, offset)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.JSON(w, http.StatusInternalServerError, false, "Failed to get all paginated petitions: "+err.Error(), petitions)
 		return
 	}
-	json.NewEncoder(w).Encode(petitions)
+	response.JSON(w, http.StatusOK, true, "OK", petitions)
 }
 
 // @Summary Get petitions by page
@@ -115,14 +116,14 @@ func (h *PetitionHandler) GetPetitionsByPage(w http.ResponseWriter, r *http.Requ
 	path := r.URL.Path // example: /petition/all/3
 	parts := strings.Split(path, "/")
 	if len(parts) < 4 {
-		http.Error(w, "Page number required", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Page number required", nil)
 		return
 	}
 
 	pageStr := parts[3]
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page <= 0 {
-		http.Error(w, "Invalid page number", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Invalid page number", nil)
 		return
 	}
 
@@ -131,27 +132,27 @@ func (h *PetitionHandler) GetPetitionsByPage(w http.ResponseWriter, r *http.Requ
 
 	petitions, err := h.usecase.GetAllPetitionsPaginated(limit, offset)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.JSON(w, http.StatusInternalServerError, false, "Failed to get all paginated petitions: "+err.Error(), nil)
 		return
 	}
 
-	json.NewEncoder(w).Encode(petitions)
+	response.JSON(w, http.StatusOK, true, "OK", petitions)
 }
 
 func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Invalid ID:"+err.Error(), nil)
 		return
 	}
 
 	petition, err := h.usecase.GetPetitionByID(uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		response.JSON(w, http.StatusNotFound, false, "Petition not found:"+err.Error(), nil)
 		return
 	}
-	json.NewEncoder(w).Encode(petition)
+	response.JSON(w, http.StatusOK, true, "OK", petition)
 }
 
 // @Summary Vote on a petition
@@ -167,7 +168,7 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	h.KafkaLogger.Log(fmt.Sprintf("Petition vote attempt from %s", r.RemoteAddr))
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
-		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
 		return
 	}
 
@@ -176,53 +177,51 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return h.TokenManager.Secret, nil
 	})
 	if err != nil {
-		http.Error(w, "Invalid tokens", http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
 		return
 	}
 
 	userID := payload.UserID
 	if userID == 0 {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing userID", nil)
 		return
 	}
 
 	var voteReq petition_data2.PetitionVoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&voteReq); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Invalid request body: "+err.Error(), nil)
 		return
 	}
 
 	petition, err := h.usecase.GetPetitionByID(voteReq.PetitionID)
 	if err != nil {
-		http.Error(w, "Petition not found", http.StatusNotFound)
+		response.JSON(w, http.StatusNotFound, false, "Petition not found: "+err.Error(), nil)
 		return
 	}
 
 	if time.Now().After(petition.VotingDeadline) {
-		http.Error(w, "Voting period has ended", http.StatusForbidden)
+		response.JSON(w, http.StatusForbidden, false, "Voting period has ended", nil)
 		return
 	}
 
 	totalVotes := petition.VotesInFavor + petition.VotesAgainst
 	if totalVotes >= petition.Goal {
-		http.Error(w, "Vote goal has been reached", http.StatusForbidden)
+		response.JSON(w, http.StatusForbidden, false, "Vote goal has been reached", nil)
 	}
 
 	err = h.usecase.Vote(userID, voteReq.PetitionID, voteReq.VoteType)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.JSON(w, http.StatusInternalServerError, false, "Failed to vote: "+err.Error(), nil)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	h.KafkaLogger.Log(fmt.Sprintf("Petition vote success: user %d voted on petition %d", userID, voteReq.PetitionID))
+	response.JSON(w, http.StatusOK, true, "OK", petition)
 }
 
 func (h *PetitionHandler) DeletePetition(w http.ResponseWriter, r *http.Request) {
-	h.KafkaLogger.Log(fmt.Sprintf("Petition delete attempt from %s", r.RemoteAddr))
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
-		http.Error(w, "Authorization tokens missing", http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
 		return
 	}
 
@@ -231,23 +230,23 @@ func (h *PetitionHandler) DeletePetition(w http.ResponseWriter, r *http.Request)
 		return h.TokenManager.Secret, nil
 	})
 	if err != nil {
-		http.Error(w, "Invalid tokens", http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
 		return
 	}
 
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Invalid ID"+err.Error(), nil)
 		return
 	}
 
 	err = h.usecase.DeletePetition(uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.JSON(w, http.StatusInternalServerError, false, "Failed to delete petition: "+err.Error(), nil)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	response.JSON(w, http.StatusOK, true, "OK", nil)
 	h.KafkaLogger.Log(fmt.Sprintf("Petition deleted: %d", id))
 }

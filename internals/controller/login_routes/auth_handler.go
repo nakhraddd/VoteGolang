@@ -2,6 +2,7 @@ package login_routes
 
 import (
 	"VoteGolang/internals/app/logging"
+	"VoteGolang/internals/controller/http/response"
 	"VoteGolang/internals/domain"
 	"VoteGolang/internals/usecases/auth_usecase"
 	"encoding/json"
@@ -36,20 +37,19 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req domain.AuthRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Invalid request", nil)
 		return
 	}
 
 	accessToken, refreshToken, err := h.authUseCase.Login(req.Username, req.Password)
 	if err != nil {
 		h.kafkaLogger.Log(fmt.Sprintf("Login failed for %s: %v", req.Username, err))
-		http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized: "+err.Error(), nil)
 		return
 	}
 
 	h.kafkaLogger.Log(fmt.Sprintf("Login success for %s", req.Username))
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(domain.TokenResponse{
+	response.JSON(w, http.StatusOK, true, "OK", domain.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	})
@@ -68,21 +68,19 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req domain.User
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Invalid request", nil)
 		return
 	}
 
 	link, token, err := h.authUseCase.Register(r.Context(), &req)
 	if err != nil {
 		h.kafkaLogger.Log(fmt.Sprintf("Register failed for %s: %v", req.Username, err))
-		http.Error(w, "Failed to register user: "+err.Error(), http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Failed to register user: "+err.Error(), nil)
 		return
 	}
 
 	h.kafkaLogger.Log(fmt.Sprintf("Register success for %s", req.Username))
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"message":      "User registered successfully",
+	response.JSON(w, http.StatusCreated, true, "User registered successfully", map[string]string{
 		"verify_link":  link,
 		"verify_token": token,
 	})
@@ -92,20 +90,19 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	h.kafkaLogger.Log(fmt.Sprintf("Refresh token attempt from %s", r.RemoteAddr))
 	var req domain.RefreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Invalid request", nil)
 		return
 	}
 
 	accessToken, refreshToken, err := h.authUseCase.Refresh(r.Context(), req.RefreshToken)
 	if err != nil {
 		h.kafkaLogger.Log(fmt.Sprintf("Refresh token failed: %v", err))
-		http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized: "+err.Error(), nil)
 		return
 	}
 
 	h.kafkaLogger.Log("Refresh token success")
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(domain.TokenResponse{
+	response.JSON(w, http.StatusOK, true, "OK", domain.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	})
@@ -115,7 +112,7 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	h.kafkaLogger.Log(fmt.Sprintf("Email verification attempt from %s", r.RemoteAddr))
 	token := r.URL.Query().Get("token")
 	if token == "" {
-		http.Error(w, "missing token", http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Missing token", nil)
 		return
 	}
 
@@ -123,14 +120,11 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	err := h.authUseCase.VerifyEmail(ctx, token)
 	if err != nil {
 		h.kafkaLogger.Log(fmt.Sprintf("Email verification failed: %v", err))
-		http.Error(w, fmt.Sprintf("verification failed: %v", err), http.StatusBadRequest)
+		response.JSON(w, http.StatusBadRequest, false, "Failed to verify email: "+err.Error(), nil)
 		return
 	}
 
 	h.kafkaLogger.Log("Email verification success")
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"message": "Email verified successfully!",
-	})
+	response.JSON(w, http.StatusOK, true, "Email verified successfully!", nil)
+
 }
