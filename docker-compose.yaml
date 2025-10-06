@@ -13,7 +13,7 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ppass123!"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 30
 
   redis:
     image: redis
@@ -24,6 +24,7 @@ services:
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    hostname: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -32,6 +33,8 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka
+    container_name: votegolang-kafka-1
     depends_on:
       - zookeeper
     ports:
@@ -39,9 +42,26 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_CFG_MIN_INSYNC_REPLICAS: 1
       KAFKA_CREATE_TOPICS: "app-logs:1:1"
+
+    command: >
+      bash -c "
+      /etc/confluent/docker/run &
+      echo 'Waiting for Kafka broker to start...' &&
+      sleep 20 &&
+      echo 'Creating topic app-logs...' &&
+      kafka-topics --create --topic app-logs --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1 || true &&
+      echo 'Topic creation complete. Waiting for broker...' &&
+      wait
+      "
+    restart: always
 
   app:
     build: .
@@ -52,17 +72,6 @@ services:
         condition: service_started
       redis:
         condition: service_started
-#    environment:
-#      - JWT_SECRET=defaultsecret
-#      - DB_HOST=db
-#      - DB_PORT=3306
-#      - DB_USER=vote_user
-#      - DB_PASS=pass123!
-#      - DB_NAME=vote_database
-#      - KAFKA_BROKER=kafka:9092
-#      - KAFKA_LOG_TOPIC=app-logs
-#      - REDIS_HOST=redis
-#      - REDIS_PORT=6379
     env_file:
       - .env
     ports:
@@ -73,7 +82,7 @@ services:
     ports:
       - "8081:8080"
     environment:
-      - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     depends_on:
       - kafka
