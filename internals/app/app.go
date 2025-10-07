@@ -78,9 +78,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	// Middleware to log every request
 	logMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			kafkaLogger.Log(
-				fmt.Sprintf("Accessed %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr),
-			)
+			kafkaLogger.Log("INFO", fmt.Sprintf("Accessed %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr))
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -116,7 +114,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 
 	// fallback for unknown routes
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		kafkaLogger.Log(fmt.Sprintf("Unknown route accessed: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr))
+		kafkaLogger.Log("WARN", fmt.Sprintf("Unknown route accessed: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr))
 		w.WriteHeader(http.StatusNotFound)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"error": "route not found"}`))

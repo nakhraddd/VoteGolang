@@ -20,7 +20,7 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	kafkaLogger := logging.NewKafkaLogger("kafka:9092", "app-logs")
+	kafkaLogger := logging.NewKafkaLogger("kafka:9092", "app-logs", "vote-golang-api")
 	defer kafkaLogger.Close()
 
 	appInstance, authUseCase, tokenManager, err := app.NewApp()
@@ -28,7 +28,7 @@ func main() {
 		log.Fatalf("Error initializing app: %v", err)
 	}
 
-	if err := kafkaLogger.Log("App started"); err != nil {
+	if err := kafkaLogger.Log("INFO", "App started"); err != nil {
 		log.Printf("Failed to send log to Kafka: %v", err)
 	}
 

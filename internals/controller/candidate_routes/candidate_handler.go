@@ -135,7 +135,7 @@ func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Re
 // @Failure 401 {string} string "Unauthorized"
 // @Router /vote [post]
 func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
-	h.KafkaLogger.Log(fmt.Sprintf("Candidate vote attempt from %s", r.RemoteAddr))
+	h.KafkaLogger.Log("INFO", fmt.Sprintf("Candidate vote attempt from %s", r.RemoteAddr))
 
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
@@ -172,7 +172,7 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.KafkaLogger.Log(fmt.Sprintf("Candidate vote success: user %d voted for candidate %d", userID, req.CandidateID))
+	h.KafkaLogger.Log("INFO", fmt.Sprintf("Candidate vote success: user %d voted for candidate %d", userID, req.CandidateID))
 
 	response.JSON(w, http.StatusOK, true, "Vote successfully", nil)
 }

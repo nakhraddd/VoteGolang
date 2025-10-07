@@ -39,7 +39,7 @@ func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager 
 // @Success 200 {string} string "Petition created"
 // @Router /petition/create [post]
 func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request) {
-	h.KafkaLogger.Log(fmt.Sprintf("Petition create attempt from %s", r.RemoteAddr))
+	h.KafkaLogger.Log("INFO", fmt.Sprintf("Petition create attempt from %s", r.RemoteAddr))
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
 		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
@@ -76,7 +76,7 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 	}
 
 	response.JSON(w, http.StatusCreated, true, "Petition created successfully", p)
-	h.KafkaLogger.Log(fmt.Sprintf("Petition created by user %d: %s", userID, p.Title))
+	h.KafkaLogger.Log("INFO", fmt.Sprintf("Petition created by user %d: %s", userID, p.Title))
 }
 
 // @Summary Get all petitions
@@ -165,7 +165,7 @@ func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request
 // @Failure 400 {string} string "Bad Request"
 // @Router /petition/vote [post]
 func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
-	h.KafkaLogger.Log(fmt.Sprintf("Petition vote attempt from %s", r.RemoteAddr))
+	h.KafkaLogger.Log("INFO", fmt.Sprintf("Petition vote attempt from %s", r.RemoteAddr))
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
 		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
@@ -248,5 +248,5 @@ func (h *PetitionHandler) DeletePetition(w http.ResponseWriter, r *http.Request)
 	}
 
 	response.JSON(w, http.StatusOK, true, "OK", nil)
-	h.KafkaLogger.Log(fmt.Sprintf("Petition deleted: %d", id))
+	h.KafkaLogger.Log("INFO", fmt.Sprintf("Petition deleted: %d", id))
 }

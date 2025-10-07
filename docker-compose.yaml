@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   db:
     image: mysql:8.0
@@ -16,7 +18,7 @@ services:
       retries: 30
 
   redis:
-    image: redis
+    image: redis:latest
     restart: always
     ports:
       - "6379:6379"
@@ -25,6 +27,7 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     hostname: zookeeper
+    restart: always
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -44,24 +47,26 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_CFG_MIN_INSYNC_REPLICAS: 1
-      KAFKA_CREATE_TOPICS: "app-logs:1:1"
-
+      KAFKA_CREATE_TOPICS: "applogs:1:1"
     command: >
       bash -c "
       /etc/confluent/docker/run &
-      echo 'Waiting for Kafka broker to start...' &&
       sleep 20 &&
-      echo 'Creating topic app-logs...' &&
       kafka-topics --create --topic app-logs --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1 || true &&
-      echo 'Topic creation complete. Waiting for broker...' &&
       wait
       "
     restart: always
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
 
   app:
     build: .
@@ -79,6 +84,7 @@ services:
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
+    restart: always
     ports:
       - "8081:8080"
     environment:
@@ -86,3 +92,52 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     depends_on:
       - kafka
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.13
+    container_name: votegolang-elasticsearch
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS http://localhost:9200/_cluster/health | grep -E '\"status\"\\s*:\\s*\"(green|yellow)\"' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    restart: always
+    depends_on:
+      - kafka
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.13
+    container_name: votegolang-logstash
+    volumes:
+      - ./logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    ports:
+      - "5044:5044"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    depends_on:
+      - kafka
+      - elasticsearch
+    networks:
+      - default
+    restart: always
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.13
+    container_name: votegolang-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+    depends_on:
+      - elasticsearch
+    restart: always
+
+volumes:
+  esdata:
