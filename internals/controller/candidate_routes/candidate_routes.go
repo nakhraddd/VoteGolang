@@ -3,11 +3,12 @@ package candidate_routes
 import (
 	http2 "VoteGolang/internals/controller/http"
 	"VoteGolang/internals/domain"
+	"VoteGolang/internals/infrastructure/repositories"
 	"log"
 	"net/http"
 )
 
-func RegisterCandidateRoutes(mux *http.ServeMux, handler *CandidateHandler, tokenManager domain.TokenManager) {
+func RegisterCandidateRoutes(mux *http.ServeMux, handler *CandidateHandler, tokenManager domain.TokenManager, rbacRepo *repositories.RBACRepository) {
 	logRequest := func(route string, handlerFunc http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			token, err := http2.ExtractTokenFromRequest(r)
@@ -21,14 +22,35 @@ func RegisterCandidateRoutes(mux *http.ServeMux, handler *CandidateHandler, toke
 		}
 	}
 
-	mux.Handle("/candidates", http2.JWTMiddleware(tokenManager)(
-		logRequest("/candidates", handler.GetAll),
-	))
-	mux.Handle("/candidates/", http2.JWTMiddleware(tokenManager)(
-		logRequest("/candidates/candidates_repository/all_by_page", handler.GetCandidatesByPage),
-	))
+	mux.Handle("/candidates",
+		http2.JWTMiddleware(tokenManager)(
+			http2.RBACMiddleware(rbacRepo, "read_candidate")(
+				logRequest("/candidates", handler.GetAll),
+			),
+		),
+	)
+	mux.Handle("/candidates/",
+		http2.JWTMiddleware(tokenManager)(
+			http2.RBACMiddleware(rbacRepo, "read_candidate")(
+				logRequest("/candidates/candidates_repository/all_by_page", handler.GetCandidatesByPage),
+			),
+		),
+	)
 
-	mux.Handle("/vote", http2.JWTMiddleware(tokenManager)(
-		logRequest("/candidate/vote", handler.Vote),
-	))
+	mux.Handle("/vote",
+		http2.JWTMiddleware(tokenManager)(
+			http2.RBACMiddleware(rbacRepo, "vote")(
+				logRequest("/candidate/vote", handler.Vote),
+			),
+		),
+	)
+
+	mux.Handle("/candidates/create",
+		http2.JWTMiddleware(tokenManager)(
+			http2.RBACMiddleware(rbacRepo, "create_candidate")(
+				logRequest("/candidates/create", handler.CreateCandidate),
+			),
+		),
+	)
+
 }

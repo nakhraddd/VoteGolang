@@ -11,13 +11,15 @@ import (
 // AuthUseCase handles authentication and authorization logic.
 type AuthUseCase struct {
 	UserRepo      domain.UserRepository
+	RoleRepo      domain.RoleRepository
 	TokenManager  domain.TokenManager
 	EmailVerifier domain.EmailVerifier
 }
 
-func NewAuthUseCase(userRepo domain.UserRepository, tm domain.TokenManager, emailVerifier domain.EmailVerifier) *AuthUseCase {
+func NewAuthUseCase(userRepo domain.UserRepository, roleRepo domain.RoleRepository, tm domain.TokenManager, emailVerifier domain.EmailVerifier) *AuthUseCase {
 	return &AuthUseCase{
 		UserRepo:      userRepo,
+		RoleRepo:      roleRepo,
 		TokenManager:  tm,
 		EmailVerifier: emailVerifier,
 	}
@@ -70,6 +72,12 @@ func (a *AuthUseCase) Register(ctx context.Context, user *domain.User) (string, 
 		return "", "", fmt.Errorf("failed to hash password: %v", err)
 	}
 	user.Password = hashedPassword
+
+	role, err := a.RoleRepo.GetByName("member")
+	if err != nil {
+		return "", "", fmt.Errorf("default role not found: %v", err)
+	}
+	user.RoleID = role.ID
 
 	err = a.UserRepo.Create(user)
 	if err != nil {

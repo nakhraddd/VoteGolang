@@ -1,4 +1,4 @@
-package votes_repositories
+package repositories
 
 import (
 	"VoteGolang/internals/domain"
@@ -26,7 +26,7 @@ func (r *voteGormRepository) SaveVote(candidateID uint, userID uint, candidateTy
 	vote := &domain.Vote{
 		CandidateID:   candidateID,
 		UserID:        userID,
-		CandidateType: candidateType,
+		CandidateType: domain.CandidateType(candidateType),
 	}
 	return r.db.Create(vote).Error
 }

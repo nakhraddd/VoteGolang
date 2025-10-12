@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"VoteGolang/internals/domain"
+	"VoteGolang/internals/infrastructure/repositories"
 	"context"
 	"net/http"
 	"strings"
@@ -28,6 +29,31 @@ func JWTMiddleware(tokenManager domain.TokenManager) func(http.Handler) http.Han
 			}
 
 			// Attaching userID to context
+			ctx := context.WithValue(r.Context(), userIDKey, userID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func RBACMiddleware(rbacRepo *repositories.RBACRepository, permission string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			val := r.Context().Value(userIDKey)
+			if val == nil {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			userID, ok := val.(uint)
+			if !ok {
+				http.Error(w, "Invalid user ID type", http.StatusInternalServerError)
+				return
+			}
+
+			if !rbacRepo.HasAccess(userID, permission) {
+				http.Error(w, "Permission denied: no access", http.StatusForbidden)
+				return
+			}
+
 			ctx := context.WithValue(r.Context(), userIDKey, userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

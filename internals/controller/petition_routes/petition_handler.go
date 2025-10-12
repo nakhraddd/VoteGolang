@@ -140,16 +140,21 @@ func (h *PetitionHandler) GetPetitionsByPage(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		response.JSON(w, http.StatusBadRequest, false, "Invalid ID:"+err.Error(), nil)
+	var req petition_data2.PetitionIDRequest
+	// Decode JSON body
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.JSON(w, http.StatusBadRequest, false, "Invalid JSON body: "+err.Error(), nil)
 		return
 	}
-
-	petition, err := h.usecase.GetPetitionByID(uint(id))
+	// Validate ID
+	if req.ID == 0 {
+		response.JSON(w, http.StatusBadRequest, false, "Missing or invalid ID", nil)
+		return
+	}
+	// Fetch petition
+	petition, err := h.usecase.GetPetitionByID(req.ID)
 	if err != nil {
-		response.JSON(w, http.StatusNotFound, false, "Petition not found:"+err.Error(), nil)
+		response.JSON(w, http.StatusNotFound, false, "Petition not found: "+err.Error(), nil)
 		return
 	}
 	response.JSON(w, http.StatusOK, true, "OK", petition)
@@ -207,6 +212,7 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	totalVotes := petition.VotesInFavor + petition.VotesAgainst
 	if totalVotes >= petition.Goal {
 		response.JSON(w, http.StatusForbidden, false, "Vote goal has been reached", nil)
+		return
 	}
 
 	err = h.usecase.Vote(userID, voteReq.PetitionID, voteReq.VoteType)
@@ -219,6 +225,13 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PetitionHandler) DeletePetition(w http.ResponseWriter, r *http.Request) {
+	// Enforce POST or DELETE
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+		response.JSON(w, http.StatusMethodNotAllowed, false, "Only DELETE or POST allowed", nil)
+		return
+	}
+
+	// Authenticate user
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
 		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
@@ -230,23 +243,28 @@ func (h *PetitionHandler) DeletePetition(w http.ResponseWriter, r *http.Request)
 		return h.TokenManager.Secret, nil
 	})
 	if err != nil {
-		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
+		response.JSON(w, http.StatusUnauthorized, false, "Invalid token: "+err.Error(), nil)
 		return
 	}
 
-	idStr := r.URL.Query().Get("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		response.JSON(w, http.StatusBadRequest, false, "Invalid ID"+err.Error(), nil)
+	// Decode JSON body
+	var req petition_data2.PetitionIDRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.JSON(w, http.StatusBadRequest, false, "Invalid JSON body: "+err.Error(), nil)
+		return
+	}
+	if req.ID == 0 {
+		response.JSON(w, http.StatusBadRequest, false, "Missing or invalid petition ID", nil)
 		return
 	}
 
-	err = h.usecase.DeletePetition(uint(id))
-	if err != nil {
+	// Perform delete
+	if err := h.usecase.DeletePetition(req.ID); err != nil {
 		response.JSON(w, http.StatusInternalServerError, false, "Failed to delete petition: "+err.Error(), nil)
 		return
 	}
 
-	response.JSON(w, http.StatusOK, true, "OK", nil)
-	h.KafkaLogger.Log("INFO", fmt.Sprintf("Petition deleted: %d", id))
+	response.JSON(w, http.StatusOK, true, "Petition deleted successfully", nil)
+	h.KafkaLogger.Log("INFO", fmt.Sprintf("Petition deleted: %d", req.ID))
 }

@@ -67,6 +67,41 @@ func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, true, "Candidates retrieved successfully", candidates)
 }
 
+func (h *CandidateHandler) CreateCandidate(w http.ResponseWriter, r *http.Request) {
+	token, err := http2.ExtractTokenFromRequest(r)
+	if err != nil {
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
+		return
+	}
+	payload := &candidate_data2.JwtClaims{}
+	_, err = jwt.ParseWithClaims(token, payload, func(t *jwt.Token) (interface{}, error) {
+		return h.TokenManager.Secret, nil
+	})
+
+	if err != nil {
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, invalid tokens: "+err.Error(), nil)
+		return
+	}
+	var candidate candidate_data2.Candidate
+	if err := json.NewDecoder(r.Body).Decode(&candidate); err != nil {
+		response.JSON(w, http.StatusBadRequest, false, "Invalid request: "+err.Error(), nil)
+		return
+	}
+
+	if candidate.Type == "" || candidate.Name == "" {
+		response.JSON(w, http.StatusBadRequest, false, "Missing candidate fields", nil)
+		return
+	}
+
+	err = h.UseCase.CreateCandidate(&candidate)
+	if err != nil {
+		response.JSON(w, http.StatusInternalServerError, false, "Failed to create candidate: "+err.Error(), nil)
+		return
+	}
+
+	response.JSON(w, http.StatusCreated, true, "Candidate created successfully", candidate)
+}
+
 // @Summary Get candidates by type by page
 // @Tags Candidates
 // @Produce json

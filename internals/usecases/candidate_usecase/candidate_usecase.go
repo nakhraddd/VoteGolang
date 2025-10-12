@@ -18,6 +18,10 @@ func NewCandidateUseCase(cRepo candidate_data2.CandidateRepository, vRepo candid
 		VoteRepo:      vRepo,
 	}
 }
+func (uc *CandidateUseCase) CreateCandidate(candidate *candidate_data2.Candidate) error {
+	return uc.CandidateRepo.Create(candidate)
+}
+
 func (uc *CandidateUseCase) GetAllByTypePaginated(candidateType string, limit, offset int) ([]candidate_data2.Candidate, error) {
 	return uc.CandidateRepo.GetAllByTypePaginated(candidateType, limit, offset)
 }

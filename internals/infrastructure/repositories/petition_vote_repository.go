@@ -1,4 +1,4 @@
-package votes_repositories
+package repositories
 
 import (
 	petition_data2 "VoteGolang/internals/domain"

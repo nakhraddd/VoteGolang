@@ -16,7 +16,7 @@ type Petition struct {
 	VotesInFavor   int            `gorm:"default:0" swaggerignore:"true"`
 	VotesAgainst   int            `gorm:"default:0" swaggerignore:"true"`
 	Goal           int            `gorm:"not null"`
-	VotingDeadline time.Time      `gorm:"type:datetime" example:"2025-05-10T23:59:00+05:00"`
+	VotingDeadline time.Time      `json:"voting_deadline" gorm:"type:datetime" example:"2025-05-10T23:59:00+05:00"`
 	DeletedAt      gorm.DeletedAt `json:"-" swaggerignore:"true"`
 	CreatedAt      time.Time      `gorm:"autoCreateTime" swaggerignore:"true"`
 	UpdatedAt      time.Time      `gorm:"autoUpdateTime" swaggerignore:"true"`
@@ -48,6 +48,10 @@ type PetitionVoteRequest struct {
 	PetitionID uint `json:"petition_id"`
 	// Enum values: favor, against
 	VoteType VoteType `json:"vote_type" enum:"favor,against" example:"favor, against"`
+}
+
+type PetitionIDRequest struct {
+	ID uint `json:"id"`
 }
 
 type VoteType string

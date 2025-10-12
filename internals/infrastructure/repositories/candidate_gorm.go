@@ -1,4 +1,4 @@
-package candidate_repository
+package repositories
 
 import (
 	"VoteGolang/internals/domain"
@@ -12,6 +12,10 @@ type candidateGormRepository struct {
 
 func NewCandidateRepository(db *gorm.DB) domain.CandidateRepository {
 	return &candidateGormRepository{db: db}
+}
+
+func (r *candidateGormRepository) Create(candidate *domain.Candidate) error {
+	return r.db.Create(candidate).Error
 }
 
 func (r *candidateGormRepository) GetAllByTypePaginated(candidateType string, limit, offset int) ([]domain.Candidate, error) {

@@ -1,4 +1,4 @@
-package user_repository
+package repositories
 
 import (
 	"VoteGolang/internals/domain"

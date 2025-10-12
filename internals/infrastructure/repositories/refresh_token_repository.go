@@ -1,4 +1,4 @@
-package domain
+package repositories
 
 type RefreshTokenRepository interface {
 	Save(userID uint, token string, expiry int64) error

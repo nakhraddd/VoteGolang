@@ -20,6 +20,8 @@ type User struct {
 	DeletedAt     gorm.DeletedAt `json:"-" swaggerignore:"true"`
 	CreatedAt     time.Time      `gorm:"autoCreateTime" swaggerignore:"true"`
 	UpdatedAt     time.Time      `gorm:"autoUpdateTime"`
+	RoleID        uint           `gorm:"not null"`
+	Role          Role           `gorm:"foreignKey:RoleID"`
 }
 
 // UserRepository handles database operations related to users.

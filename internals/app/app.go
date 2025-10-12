@@ -11,10 +11,7 @@ import (
 	"VoteGolang/internals/controller/petition_routes"
 	"VoteGolang/internals/domain"
 	"VoteGolang/internals/infrastructure/email"
-	candidate_repo "VoteGolang/internals/infrastructure/repositories/candidate_repository"
-	petition3 "VoteGolang/internals/infrastructure/repositories/petition_repository"
-	"VoteGolang/internals/infrastructure/repositories/user_repository"
-	votes_repositories2 "VoteGolang/internals/infrastructure/repositories/votes_repositories"
+	candidate_repo "VoteGolang/internals/infrastructure/repositories"
 	"VoteGolang/internals/usecases/auth_usecase"
 	"VoteGolang/internals/usecases/candidate_usecase"
 	"VoteGolang/internals/usecases/petittion_usecase"
@@ -51,7 +48,7 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
 		DB:     db,
 	}
 
-	userRepo := user_repository.NewUserRepository(db)
+	userRepo := candidate_repo.NewUserRepository(db)
 	tokenManager := domain.NewJwtToken(config.JWTSecret)
 	// создаем Redis клиент
 	rdb := redis.NewClient(&redis.Options{
@@ -60,9 +57,11 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
 		DB: 0,
 	})
 
+	roleRepo := candidate_repo.NewRoleRepository(db)
+
 	// создаем EmailVerifier
 	emailVerifier := email.NewRedisEmailVerifier(rdb)
-	authUseCase := auth_usecase.NewAuthUseCase(userRepo, tokenManager, emailVerifier)
+	authUseCase := auth_usecase.NewAuthUseCase(userRepo, roleRepo, tokenManager, emailVerifier)
 
 	// start clean up of unverified users
 	email.StartUnverifiedCleanupJob(userRepo)
@@ -90,27 +89,30 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	authHandler := login_routes.NewAuthHandler(authUseCase, tokenManager, kafkaLogger)
 	login_routes.AuthorizationRoutes(mux, authHandler, tokenManager, kafkaLogger)
 
+	// create rbac repo once
+	rbacRepo := candidate_repo.NewRBACRepository(a.DB)
+
 	// Candidate
 	candidateHandler := candidate_routes.NewCandidateHandler(
 		candidate_usecase.NewCandidateUseCase(
 			candidate_repo.NewCandidateRepository(a.DB),
-			votes_repositories2.NewVoteRepository(a.DB),
+			candidate_repo.NewVoteRepository(a.DB),
 		),
 		tokenManager.(*domain.JwtToken),
 		kafkaLogger,
 	)
-	candidate_routes.RegisterCandidateRoutes(mux, candidateHandler, tokenManager)
+	candidate_routes.RegisterCandidateRoutes(mux, candidateHandler, tokenManager, rbacRepo)
 
 	//Petitions
 	petitionsHandler := petition_routes.NewPetitionHandler(
 		petittion_usecase.NewPetitionUseCase(
-			petition3.NewPetitionRepository(a.DB),
-			votes_repositories2.NewPetitionVoteRepository(a.DB),
+			candidate_repo.NewPetitionRepository(a.DB),
+			candidate_repo.NewPetitionVoteRepository(a.DB),
 		),
 		tokenManager.(*domain.JwtToken),
 		kafkaLogger,
 	)
-	petition_routes.RegisterPetitionRoutes(mux, petitionsHandler, tokenManager)
+	petition_routes.RegisterPetitionRoutes(mux, petitionsHandler, tokenManager, rbacRepo)
 
 	// fallback for unknown routes
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
