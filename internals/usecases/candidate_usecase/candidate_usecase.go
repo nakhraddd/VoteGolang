@@ -1,6 +1,7 @@
 package candidate_usecase
 
 import (
+	"VoteGolang/internals/blockchain"
 	candidate_data2 "VoteGolang/internals/domain"
 	"errors"
 	"time"
@@ -10,16 +11,27 @@ import (
 type CandidateUseCase struct {
 	CandidateRepo candidate_data2.CandidateRepository
 	VoteRepo      candidate_data2.VoteRepository
+	Blockchain    *blockchain.Blockchain
 }
 
-func NewCandidateUseCase(cRepo candidate_data2.CandidateRepository, vRepo candidate_data2.VoteRepository) *CandidateUseCase {
+func NewCandidateUseCase(cRepo candidate_data2.CandidateRepository, vRepo candidate_data2.VoteRepository, bc *blockchain.Blockchain) *CandidateUseCase {
 	return &CandidateUseCase{
 		CandidateRepo: cRepo,
 		VoteRepo:      vRepo,
+		Blockchain:    bc,
 	}
 }
 func (uc *CandidateUseCase) CreateCandidate(candidate *candidate_data2.Candidate) error {
-	return uc.CandidateRepo.Create(candidate)
+	if err := uc.CandidateRepo.Create(candidate); err != nil {
+		return err
+	}
+
+	transaction := blockchain.Transaction{
+		Type:    "CANDIDATE_CREATION",
+		Payload: candidate,
+	}
+	uc.Blockchain.AddBlock(transaction)
+	return nil
 }
 
 func (uc *CandidateUseCase) GetAllByTypePaginated(candidateType string, limit, offset int) ([]candidate_data2.Candidate, error) {
@@ -65,5 +77,19 @@ func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType ca
 		return err
 	}
 
-	return uc.VoteRepo.SaveVote(candidateID, userID, string(candidateType))
+	if err := uc.VoteRepo.SaveVote(candidateID, userID, string(candidateType)); err != nil {
+		return err
+	}
+
+	transaction := blockchain.Transaction{
+		Type: "VOTE_CAST",
+		Payload: map[string]interface{}{
+			"candidate_id":   candidateID,
+			"user_id":        userID,
+			"candidate_type": candidateType,
+		},
+	}
+	uc.Blockchain.AddBlock(transaction)
+
+	return nil
 }

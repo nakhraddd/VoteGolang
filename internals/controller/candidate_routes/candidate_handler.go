@@ -193,7 +193,7 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("User ID from tokens: %s", userID)
+	log.Printf("User ID from tokens: %d", userID)
 
 	var req candidate_data2.VoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

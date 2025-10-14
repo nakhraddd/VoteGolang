@@ -6,6 +6,8 @@ import (
 	"VoteGolang/internals/app/connect"
 	"VoteGolang/internals/app/logging"
 	"VoteGolang/internals/app/migrations"
+	"VoteGolang/internals/blockchain"
+	"VoteGolang/internals/controller/blockchain_routes"
 	"VoteGolang/internals/controller/candidate_routes"
 	"VoteGolang/internals/controller/login_routes"
 	"VoteGolang/internals/controller/petition_routes"
@@ -26,8 +28,9 @@ import (
 )
 
 type App struct {
-	Config *conf.Config
-	DB     *gorm.DB
+	Config     *conf.Config
+	DB         *gorm.DB
+	Blockchain *blockchain.Blockchain
 }
 
 func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
@@ -43,9 +46,12 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
 		return nil, nil, nil, err
 	}
 
+	bc := blockchain.NewBlockchain(2)
+
 	app := &App{
-		Config: config,
-		DB:     db,
+		Config:     config,
+		DB:         db,
+		Blockchain: bc,
 	}
 
 	userRepo := candidate_repo.NewUserRepository(db)
@@ -97,6 +103,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 		candidate_usecase.NewCandidateUseCase(
 			candidate_repo.NewCandidateRepository(a.DB),
 			candidate_repo.NewVoteRepository(a.DB),
+			a.Blockchain,
 		),
 		tokenManager.(*domain.JwtToken),
 		kafkaLogger,
@@ -108,11 +115,16 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 		petittion_usecase.NewPetitionUseCase(
 			candidate_repo.NewPetitionRepository(a.DB),
 			candidate_repo.NewPetitionVoteRepository(a.DB),
+			a.Blockchain,
 		),
 		tokenManager.(*domain.JwtToken),
 		kafkaLogger,
 	)
 	petition_routes.RegisterPetitionRoutes(mux, petitionsHandler, tokenManager, rbacRepo)
+
+	// Blockchain
+	blockchainHandler := blockchain_routes.NewBlockchainHandler(a.Blockchain)
+	blockchain_routes.RegisterBlockchainRoutes(mux, blockchainHandler)
 
 	// fallback for unknown routes
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
