@@ -53,7 +53,7 @@ services:
       KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_CFG_MIN_INSYNC_REPLICAS: 1
-      KAFKA_CREATE_TOPICS: "applogs:1:1"
+      KAFKA_CREATE_TOPICS: "app-logs:1:1"
     command: >
       bash -c "
       /etc/confluent/docker/run &
