@@ -4,6 +4,7 @@ import (
 	"VoteGolang/internals/app"
 	"VoteGolang/internals/app/logging"
 	"log"
+	"os"
 )
 
 // @title Online Election Vote
@@ -20,7 +21,13 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	kafkaLogger := logging.NewKafkaLogger("kafka:9092", "app-logs", "vote-golang-api")
+
+	kafkaBroker := os.Getenv("KAFKA_BROKER")
+	if kafkaBroker == "" {
+		kafkaBroker = "kafka:9092" // fallback
+	}
+
+	kafkaLogger := logging.NewKafkaLogger(kafkaBroker, "app-logs", "vote-golang-api")
 	defer kafkaLogger.Close()
 
 	appInstance, authUseCase, tokenManager, err := app.NewApp()

@@ -12,10 +12,12 @@ services:
     ports:
       - "3307:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ppass123!"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -pDarhani2004 || exit 1"]
       interval: 10s
-      timeout: 5s
+      timeout: 15s
       retries: 30
+      start_period: 20s
+
 
   redis:
     image: redis:latest
@@ -49,18 +51,11 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_CFG_MIN_INSYNC_REPLICAS: 1
-      KAFKA_CREATE_TOPICS: "applogs:1:1"
-    command: >
-      bash -c "
-      /etc/confluent/docker/run &
-      sleep 20 &&
-      kafka-topics --create --topic app-logs --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1 || true &&
-      wait
-      "
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+
     restart: always
     healthcheck:
       test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka:9092", "--list"]
@@ -74,13 +69,14 @@ services:
       db:
         condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_started
     env_file:
       - .env
     ports:
       - "8080:8080"
+    command: sh -c "echo '⏳ Waiting for services...' && sleep 40 && go run ./cmd/app/main.go"
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -90,6 +86,7 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     depends_on:
       - kafka
 
@@ -122,8 +119,10 @@ services:
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     depends_on:
-      - kafka
-      - elasticsearch
+      kafka:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     networks:
       - default
     restart: always

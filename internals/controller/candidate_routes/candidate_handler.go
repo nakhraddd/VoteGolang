@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -40,27 +38,33 @@ func NewCandidateHandler(useCase *candidate_usecase.CandidateUseCase, tokenManag
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /candidates [get]
 func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	typ := r.URL.Query().Get("type")
-	if typ == "" {
+	// Проверяем, что метод — POST (или другой, если нужно)
+	if r.Method != http.MethodPost {
+		response.JSON(w, http.StatusMethodNotAllowed, false, "Method not allowed", nil)
+		return
+	}
+
+	// Структура для JSON-запроса
+	var req struct {
+		Type string `json:"type"`
+	}
+
+	// Парсим JSON из тела запроса
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.JSON(w, http.StatusBadRequest, false, "Invalid JSON", err.Error())
+		return
+	}
+
+	// Проверяем обязательное поле
+	if req.Type == "" {
 		response.JSON(w, http.StatusBadRequest, false, "Type is required", nil)
 		return
 	}
 
-	limitStr := r.URL.Query().Get("limit")
-	offsetStr := r.URL.Query().Get("offset")
-
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
-	offset, err := strconv.Atoi(offsetStr)
-	if err != nil || offset < 0 {
-		offset = 0
-	}
-
-	candidates, err := h.UseCase.GetAllByTypePaginated(typ, limit, offset)
+	// Вызываем use case
+	candidates, err := h.UseCase.GetAllByType(req.Type)
 	if err != nil {
-		response.JSON(w, http.StatusInternalServerError, false, "failed to get candidates", err.Error())
+		response.JSON(w, http.StatusInternalServerError, false, "Failed to get candidates", err.Error())
 		return
 	}
 
@@ -112,50 +116,50 @@ func (h *CandidateHandler) CreateCandidate(w http.ResponseWriter, r *http.Reques
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /candidates/ [get]
 func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Request) {
-	// Get 'type' query parameter
-	typ := r.URL.Query().Get("type")
-	if typ == "" {
+	// Only allow POST for JSON body
+	if r.Method != http.MethodPost {
+		response.JSON(w, http.StatusMethodNotAllowed, false, "Method not allowed", nil)
+		return
+	}
+
+	// Parse JSON body
+	var req struct {
+		Type  string `json:"type"`
+		Page  int    `json:"page"`
+		Limit int    `json:"limit"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.JSON(w, http.StatusBadRequest, false, "Invalid JSON body", err.Error())
+		return
+	}
+
+	// Validate input
+	if req.Type == "" {
 		response.JSON(w, http.StatusBadRequest, false, "Type is required", nil)
 		return
 	}
 
-	// Split the URL to get the page number
-	path := r.URL.Path // example: /candidates/1
-	parts := strings.Split(path, "/")
-	if len(parts) < 3 {
-		response.JSON(w, http.StatusBadRequest, false, "Page number required", nil)
+	if req.Page <= 0 {
+		response.JSON(w, http.StatusBadRequest, false, "Page must be greater than 0", nil)
 		return
 	}
 
-	pageStr := parts[len(parts)-1] // Get the last part which is the page number
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page <= 0 {
-		response.JSON(w, http.StatusBadRequest, false, "Invalid page number", nil)
-		return
+	if req.Limit <= 0 {
+		req.Limit = 10 // default limit
 	}
 
-	// Optionally, get 'limit' from query params, else default to 10
-	limitStr := r.URL.Query().Get("limit")
-	limit := 10 // default value
-	if limitStr != "" {
-		limit, err = strconv.Atoi(limitStr)
-		if err != nil || limit <= 0 {
-			response.JSON(w, http.StatusBadRequest, false, "Invalid limit", nil)
-			return
-		}
-	}
+	// Calculate offset
+	offset := (req.Page - 1) * req.Limit
 
-	// Calculate offset for pagination
-	offset := (page - 1) * limit
-
-	// Get candidates using the paginated use case method
-	candidates, err := h.UseCase.GetAllByTypePaginated(typ, limit, offset)
+	// Fetch data
+	candidates, err := h.UseCase.GetAllByTypePaginated(req.Type, req.Limit, offset)
 	if err != nil {
 		response.JSON(w, http.StatusInternalServerError, false, "Failed to get candidates", err.Error())
 		return
 	}
 
-	// Return the candidates
+	// Return success response
 	response.JSON(w, http.StatusOK, true, "Candidates retrieved successfully", candidates)
 }
 
@@ -210,4 +214,8 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	h.KafkaLogger.Log("INFO", fmt.Sprintf("Candidate vote success: user %d voted for candidate %d", userID, req.CandidateID))
 
 	response.JSON(w, http.StatusOK, true, "Vote successfully", nil)
+}
+
+func (h *CandidateHandler) DeleteCandidate(w http.ResponseWriter, r *http.Request) {
+
 }
