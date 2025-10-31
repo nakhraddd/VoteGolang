@@ -1,6 +1,7 @@
 package petittion_usecase
 
 import (
+	"VoteGolang/internals/blockchain"
 	petition_data2 "VoteGolang/internals/domain"
 	"fmt"
 	"time"
@@ -22,12 +23,14 @@ type PetitionUseCase interface {
 type petitionUseCase struct {
 	petitionRepo     petition_data2.PetitionRepository
 	petitionVoteRepo petition_data2.PetitionVoteRepository
+	blockchain       *blockchain.Blockchain
 }
 
-func NewPetitionUseCase(pr petition_data2.PetitionRepository, pvr petition_data2.PetitionVoteRepository) PetitionUseCase {
+func NewPetitionUseCase(pr petition_data2.PetitionRepository, pvr petition_data2.PetitionVoteRepository, bc *blockchain.Blockchain) PetitionUseCase {
 	return &petitionUseCase{
 		petitionRepo:     pr,
 		petitionVoteRepo: pvr,
+		blockchain:       bc,
 	}
 }
 func (uc *petitionUseCase) GetAllPetitionsPaginated(limit, offset int) ([]petition_data2.Petition, error) {
@@ -35,7 +38,17 @@ func (uc *petitionUseCase) GetAllPetitionsPaginated(limit, offset int) ([]petiti
 }
 
 func (uc *petitionUseCase) CreatePetition(p *petition_data2.Petition) error {
-	return uc.petitionRepo.Create(p)
+	if err := uc.petitionRepo.Create(p); err != nil {
+		return err
+	}
+
+	transaction := blockchain.Transaction{
+		Type:    "PETITION_CREATION",
+		Payload: p,
+	}
+	uc.blockchain.AddBlock(transaction)
+
+	return nil
 }
 
 func (uc *petitionUseCase) GetAllPetitions() ([]petition_data2.Petition, error) {
@@ -84,15 +97,33 @@ func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType petition_
 		return err
 	}
 
+	var dbErr error
 	switch voteType {
 	case petition_data2.Favor:
-		return uc.petitionRepo.VoteInFavor(petitionID)
+		dbErr = uc.petitionRepo.VoteInFavor(petitionID)
 	case petition_data2.Against:
-		return uc.petitionRepo.VoteAgainst(petitionID)
+		dbErr = uc.petitionRepo.VoteAgainst(petitionID)
 	default:
-		return fmt.Errorf("invalid petition type")
+		return fmt.Errorf("invalid vote type")
 	}
 
+	if dbErr != nil {
+		return dbErr
+	}
+
+	transaction := blockchain.Transaction{
+		Type: "PETITION_VOTE",
+		Payload: map[string]interface{}{
+			"petition_id": petitionID,
+			"user_id":     userID,
+			"vote_type":   voteType,
+		},
+		Description: fmt.Sprintf("User %d voted on petition %d", userID, petitionID),
+		Timestamp:   time.Now(),
+	}
+	uc.blockchain.AddBlock(transaction)
+
+	return nil
 }
 
 func (uc *petitionUseCase) DeletePetition(id uint) error {
