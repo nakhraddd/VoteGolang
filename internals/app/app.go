@@ -6,7 +6,6 @@ import (
 	"VoteGolang/internals/app/connect"
 	"VoteGolang/internals/app/logging"
 	"VoteGolang/internals/app/migrations"
-	"VoteGolang/internals/blockchain"
 	"VoteGolang/internals/controller/blockchain_routes"
 	"VoteGolang/internals/controller/candidate_routes"
 	"VoteGolang/internals/controller/login_routes"
@@ -15,6 +14,7 @@ import (
 	"VoteGolang/internals/infrastructure/email"
 	candidate_repo "VoteGolang/internals/infrastructure/repositories"
 	"VoteGolang/internals/infrastructure/search"
+	"VoteGolang/internals/service" // <-- NEW IMPORT
 	"VoteGolang/internals/usecases/auth_usecase"
 	"VoteGolang/internals/usecases/candidate_usecase"
 	"VoteGolang/internals/usecases/petittion_usecase"
@@ -33,7 +33,7 @@ import (
 type App struct {
 	Config     *conf.Config
 	DB         *gorm.DB
-	Blockchain *blockchain.Blockchain
+	Blockchain service.BlockchainService // <-- CHANGED
 }
 
 func NewApp(kafkaLogger *logging.KafkaLogger) (*App, *auth_usecase.AuthUseCase, domain.TokenManager, *redis.Client, *elasticsearch.Client, error) {
@@ -69,7 +69,7 @@ func NewApp(kafkaLogger *logging.KafkaLogger) (*App, *auth_usecase.AuthUseCase, 
 	app := &App{
 		Config:     config,
 		DB:         db,
-		Blockchain: bc,
+		Blockchain: bc, // <-- CHANGED
 	}
 
 	userRepo := candidate_repo.NewUserRepository(db)

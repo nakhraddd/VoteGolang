@@ -5,5 +5,5 @@ import (
 )
 
 func RegisterBlockchainRoutes(mux *http.ServeMux, handler *BlockchainHandler) {
-	mux.HandleFunc("/blockchain", handler.GetBlockchain)
+	mux.HandleFunc("/blockchain", handler.GetBlockchainInfo)
 }

@@ -1,11 +1,14 @@
 package candidate_usecase
 
 import (
+	"VoteGolang/internals/domain"  // This was candidate_data2, aliasing to domain
+	"VoteGolang/internals/service" // <-- NEW IMPORT
 	"VoteGolang/internals/blockchain"
 	candidate_data2 "VoteGolang/internals/domain"
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"fmt"
 	"log"
 	"math/rand"
@@ -18,11 +21,9 @@ import (
 
 // CandidateUseCase handles business logic related to election candidates.
 type CandidateUseCase struct {
-	CandidateRepo candidate_data2.CandidateRepository
-	VoteRepo      candidate_data2.VoteRepository
-	Blockchain    *blockchain.Blockchain
-	Redis         *redis.Client
-	SearchRepo    *search.SearchRepository
+	CandidateRepo domain.CandidateRepository
+	VoteRepo      domain.VoteRepository
+	Blockchain    service.BlockchainService // <-- CHANGED
 }
 
 func NewCandidateUseCase(cRepo candidate_data2.CandidateRepository, vRepo candidate_data2.VoteRepository, bc *blockchain.Blockchain, rdb *redis.Client, searchRepo *search.SearchRepository) *CandidateUseCase {
@@ -34,12 +35,12 @@ func NewCandidateUseCase(cRepo candidate_data2.CandidateRepository, vRepo candid
 		SearchRepo:    searchRepo,
 	}
 }
-func (uc *CandidateUseCase) CreateCandidate(candidate *candidate_data2.Candidate) error {
+
+func (uc *CandidateUseCase) CreateCandidate(candidate *domain.Candidate) error {
 	if err := uc.CandidateRepo.Create(candidate); err != nil {
 		return err
 	}
 
-	// Index in Elasticsearch
 	if uc.SearchRepo != nil {
 		go func() {
 			id := fmt.Sprintf("%d", candidate.ID)
@@ -55,16 +56,14 @@ func (uc *CandidateUseCase) CreateCandidate(candidate *candidate_data2.Candidate
 	for _, k := range keys {
 		uc.Redis.Del(context.Background(), k)
 	}
-
-	transaction := blockchain.Transaction{
-		Type:    "CANDIDATE_CREATION",
-		Payload: candidate,
+	if _, err := uc.Blockchain.LogCandidateCreation(candidate); err != nil {
+		log.Printf("ERROR: Candidate %d created in DB but failed to log to blockchain: %v", candidate.ID, err)
 	}
-	uc.Blockchain.AddBlock(transaction)
+
 	return nil
 }
 
-func (uc *CandidateUseCase) GetAllByTypePaginated(candidateType string, limit, offset int) ([]candidate_data2.Candidate, error) {
+func (uc *CandidateUseCase) GetAllByTypePaginated(candidateType string, limit, offset int) ([]domain.Candidate, error) {
 	ctx := context.Background()
 	cacheKey := fmt.Sprintf("candidates:type:%s:page:%d:limit:%d", candidateType, offset/limit+1, limit)
 
@@ -87,11 +86,11 @@ func (uc *CandidateUseCase) GetAllByTypePaginated(candidateType string, limit, o
 	data, _ := json.Marshal(candidates)
 	uc.Redis.Set(ctx, cacheKey, data, time.Duration(rand.Intn(5)+25)*time.Minute) // 25–30 minutes
 
-	return candidates, nil
+	return uc.CandidateRepo.GetAllByTypePaginated(candidateType, limit, offset)
 }
 
 // GetAllByType returns a list of candidates filtered by type.
-func (uc *CandidateUseCase) GetAllByType(candidateType string) ([]candidate_data2.Candidate, error) {
+func (uc *CandidateUseCase) GetAllByType(candidateType string) ([]domain.Candidate, error) {
 	ctx := context.Background()
 	cacheKey := fmt.Sprintf("candidates:type:%s", candidateType)
 
@@ -115,39 +114,24 @@ func (uc *CandidateUseCase) GetAllByType(candidateType string) ([]candidate_data
 	// Save to Redis
 	data, _ := json.Marshal(candidates)
 	uc.Redis.Set(ctx, cacheKey, data, time.Duration(rand.Intn(5)+25)*time.Minute) // 25–30 minutes
-	return candidates, nil
-}
 
-func (uc *CandidateUseCase) GetCandidateByID(id uint) (*candidate_data2.Candidate, error) {
-	ctx := context.Background()
-	cacheKey := fmt.Sprintf("candidate:%d", id)
-
-	if cached, err := uc.Redis.Get(ctx, cacheKey).Result(); err == nil {
-		var candidate candidate_data2.Candidate
-		if json.Unmarshal([]byte(cached), &candidate) == nil {
-			log.Println("Cache hit:", cacheKey)
-			return &candidate, nil
-		}
-	}
-
-	log.Println("Cache miss:", cacheKey)
-	candidate, err := uc.CandidateRepo.GetByID(id)
-	if err != nil {
-		return nil, err
-	}
-
-	data, _ := json.Marshal(candidate)
-	uc.Redis.Set(ctx, cacheKey, data, 5*time.Minute)
-	return candidate, nil
+	return uc.CandidateRepo.GetAllByType(candidateType)
 }
 
 // Vote votes for candidate by type, user_id, candidate_id.
-func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType candidate_data2.CandidateType) error {
-	if !candidate_data2.IsValidCandidateType(string(candidateType)) {
+func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType domain.CandidateType) error {
+	if !domain.IsValidCandidateType(string(candidateType)) {
 		return errors.New("invalid candidate type")
 	}
 
-	// Validate candidate exists and matches criteria BEFORE starting transaction
+	voted, err := uc.VoteRepo.HasVoted(userID, string(candidateType))
+	if err != nil {
+		return err
+	}
+	if voted {
+		return errors.New("already voted for this category")
+	}
+
 	candidate, err := uc.CandidateRepo.GetByID(candidateID)
 	if err != nil {
 		return err
@@ -159,6 +143,7 @@ func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType ca
 	if time.Now().Before(candidate.VotingStart) {
 		return errors.New("voting has not started for this candidate")
 	}
+
 	if time.Now().After(candidate.VotingDeadline) {
 		return errors.New("voting period has ended for this candidate")
 	}
@@ -170,38 +155,5 @@ func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType ca
 			return err
 		}
 
-		// Add to blockchain
-		transaction := blockchain.Transaction{
-			Type: "VOTE_CAST",
-			Payload: map[string]interface{}{
-				"candidate_id":   candidateID,
-				"user_id":        userID,
-				"candidate_type": candidateType,
-			},
-		}
-		uc.Blockchain.AddBlock(transaction)
-
-		return nil
-	})
-}
-
-func (uc *CandidateUseCase) DeleteCandidate(id uint) error {
-	if err := uc.CandidateRepo.DeleteByID(id); err != nil {
-		return err
-	}
-
-	// Invalidate all candidate caches
-	ctx := context.Background()
-	var cursor uint64
-	for {
-		keys, nextCursor, _ := uc.Redis.Scan(ctx, cursor, "candidates*", 100).Result()
-		for _, k := range keys {
-			uc.Redis.Del(ctx, k)
-		}
-		if nextCursor == 0 {
-			break
-		}
-		cursor = nextCursor
-	}
 	return nil
 }

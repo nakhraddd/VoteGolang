@@ -9,6 +9,13 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type TronConfig struct {
+	NodeURL         string
+	PrivateKey      string
+	ContractAddress string
+	ApiKey          string
+}
+
 type Config struct {
 	JWTSecret string
 	DBHost    string
@@ -16,6 +23,7 @@ type Config struct {
 	DBUser    string
 	DBPass    string
 	DBName    string
+	Tron      *TronConfig // Added
 }
 
 func LoadConfig(kafkaLogger *logging.KafkaLogger) *Config {
@@ -35,6 +43,12 @@ func LoadConfig(kafkaLogger *logging.KafkaLogger) *Config {
 		DBUser:    getEnv("DB_USER", "root", kafkaLogger),
 		DBPass:    getEnv("DB_PASS", "$F00tba11!", kafkaLogger),
 		DBName:    getEnv("DB_NAME", "vote_database", kafkaLogger),
+		Tron: &TronConfig{
+			NodeURL:         os.Getenv("TRON_NODE_URL"),
+			PrivateKey:      os.Getenv("TRON_PRIVATE_KEY"),
+			ContractAddress: os.Getenv("TRON_CONTRACT_ADDRESS"),
+			ApiKey:          os.Getenv("TRON_API_KEY"),
+		},
 	}
 
 	kafkaLogger.Log("INFO", fmt.Sprintf("Configuration loaded successfully for DB %s:%s", cfg.DBHost, cfg.DBPort))

@@ -1,35 +1,34 @@
 package petittion_usecase
 
 import (
-	"VoteGolang/internals/blockchain"
-	petition_data2 "VoteGolang/internals/domain"
-	"context"
-	"encoding/json"
+	"VoteGolang/internals/domain"  // This was petition_data2, aliasing to domain
+	"VoteGolang/internals/service" // <-- NEW IMPORT
 	"fmt"
 	"log"
 	"math/rand"
 	"time"
-
+	"context"
+	"encoding/json"
 	"github.com/redis/go-redis/v9"
 )
 
 // PetitionUseCase manages petition creation and retrieval.
 type PetitionUseCase interface {
 	// CreatePetition allows a user to create a new petition.
-	CreatePetition(p *petition_data2.Petition) error
+	CreatePetition(p *domain.Petition) error
 	// GetAllPetitions returns all active petitions.
-	GetAllPetitions() ([]petition_data2.Petition, error)
-	GetPetitionByID(id uint) (*petition_data2.Petition, error)
-	Vote(userID uint, petitionID uint, voteType petition_data2.VoteType) error
+	GetAllPetitions() ([]domain.Petition, error)
+	GetPetitionByID(id uint) (*domain.Petition, error)
+	Vote(userID uint, petitionID uint, voteType domain.VoteType) error
 	DeletePetition(id uint) error
 	HasUserVoted(userID uint, petitionID uint) (bool, error)
-	GetAllPetitionsPaginated(limit, offset int) ([]petition_data2.Petition, error)
+	GetAllPetitionsPaginated(limit, offset int) ([]domain.Petition, error)
 }
 
 type petitionUseCase struct {
-	petitionRepo     petition_data2.PetitionRepository
-	petitionVoteRepo petition_data2.PetitionVoteRepository
-	blockchain       *blockchain.Blockchain
+	petitionRepo     domain.PetitionRepository
+	petitionVoteRepo domain.PetitionVoteRepository
+	blockchain       service.BlockchainService // <-- CHANGED
 	redis            *redis.Client
 }
 
@@ -66,11 +65,10 @@ func (uc *petitionUseCase) GetAllPetitionsPaginated(limit, offset int) ([]petiti
 	return petitions, nil
 }
 
-func (uc *petitionUseCase) CreatePetition(p *petition_data2.Petition) error {
+func (uc *petitionUseCase) CreatePetition(p *domain.Petition) error {
 	if err := uc.petitionRepo.Create(p); err != nil {
 		return err
 	}
-
 	// Invalidate cache
 	pattern := "petitions*"
 	ctx := context.Background()
@@ -85,17 +83,15 @@ func (uc *petitionUseCase) CreatePetition(p *petition_data2.Petition) error {
 		}
 		cursor = nextCursor
 	}
-
-	transaction := blockchain.Transaction{
-		Type:    "PETITION_CREATION",
-		Payload: p,
+	if _, err := uc.blockchain.LogPetitionCreation(p); err != nil {
+		log.Printf("ERROR: Petition %d created in DB but failed to log to blockchain: %v", p.ID, err)
+		// See note in candidate_usecase about handling this error
 	}
-	uc.blockchain.AddBlock(transaction)
 
 	return nil
 }
 
-func (uc *petitionUseCase) GetAllPetitions() ([]petition_data2.Petition, error) {
+func (uc *petitionUseCase) GetAllPetitions() ([]domain.Petition, error) {
 	ctx := context.Background()
 	cacheKey := "petitions"
 
@@ -122,7 +118,7 @@ func (uc *petitionUseCase) GetAllPetitions() ([]petition_data2.Petition, error) 
 	return petitions, nil
 }
 
-func (uc *petitionUseCase) GetPetitionByID(id uint) (*petition_data2.Petition, error) {
+func (uc *petitionUseCase) GetPetitionByID(id uint) (*domain.Petition, error) {
 	ctx := context.Background()
 	cacheKey := fmt.Sprintf("petition:%d", id)
 
@@ -145,8 +141,15 @@ func (uc *petitionUseCase) GetPetitionByID(id uint) (*petition_data2.Petition, e
 	return petition, nil
 }
 
-func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType petition_data2.VoteType) error {
-	// Validate petition exists and meets criteria BEFORE transaction
+func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType domain.VoteType) error {
+	voted, err := uc.petitionVoteRepo.HasUserVoted(userID, petitionID)
+	if err != nil {
+		return err
+	}
+	if voted {
+		return fmt.Errorf("user has already voted")
+	}
+
 	petition, err := uc.petitionRepo.GetByID(petitionID)
 	if err != nil {
 		return err
@@ -195,23 +198,10 @@ func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType petition_
 					Description: fmt.Sprintf("User %d voted on petition %d", userID, petitionID),
 					Timestamp:   time.Now(),
 				}
-				uc.blockchain.AddBlock(transaction)
-			}
+				if _, err := uc.blockchain.LogPetitionVote(userID, petitionID, voteType); err != nil {
+					log.Printf("ERROR: Petition vote (user %d, petition %d) saved to DB but failed to log to blockchain: %v", userID, petitionID, err)
+				}			}
 		}()
-		//if uc.blockchain != nil {
-		//	transaction := blockchain.Transaction{
-		//		Type: "PETITION_VOTE",
-		//		Payload: map[string]interface{}{
-		//			"petition_id": petitionID,
-		//			"user_id":     userID,
-		//			"vote_type":   voteType,
-		//		},
-		//		Description: fmt.Sprintf("User %d voted on petition %d", userID, petitionID),
-		//		Timestamp:   time.Now(),
-		//	}
-		//	uc.blockchain.AddBlock(transaction)
-		//}
-
 		// Invalidate cache
 		ctx := context.Background()
 		cacheKey := fmt.Sprintf("petition:%d", petitionID)
