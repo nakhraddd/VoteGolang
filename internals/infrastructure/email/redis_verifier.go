@@ -80,7 +80,7 @@ func (r *RedisEmailVerifier) SendVerificationMail(ctx context.Context, email str
 	w.Close()
 
 	// сохраняем в Redis
-	err = r.client.Set(ctx, verificationKey, email, 24*time.Hour).Err()
+	err = r.client.Set(ctx, verificationKey, email, 5*time.Minute).Err()
 	if err != nil {
 		return "", "", err
 	}

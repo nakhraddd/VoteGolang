@@ -37,7 +37,7 @@ func RegisterPetitionRoutes(mux *http.ServeMux, handler *PetitionHandler, tokenM
 			),
 		),
 	)
-	mux.Handle("/petition/all/",
+	mux.Handle("/petition/page",
 		http2.JWTMiddleware(tokenManager)(
 			http2.RBACMiddleware(rbacRepo, "read_petition")(
 				logRequest("/petition/petition_repository/all_by_page", handler.GetPetitionsByPage),

@@ -17,6 +17,7 @@ import (
 	"VoteGolang/internals/usecases/auth_usecase"
 	"VoteGolang/internals/usecases/candidate_usecase"
 	"VoteGolang/internals/usecases/petittion_usecase"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -33,17 +34,17 @@ type App struct {
 	Blockchain *blockchain.Blockchain
 }
 
-func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
+func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, *redis.Client, error) {
 	config := conf.LoadConfig()
 	db, err := connect.ConnectDB(config)
 
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	err = migrations.MigrateAllTables(db)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	bc := blockchain.NewBlockchain(2)
@@ -59,9 +60,16 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
 	// создаем Redis клиент
 	rdb := redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%v:%v", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
-		//Password: "", // если есть пароль - укажи
+		//Password: "", // если есть пароль
 		DB: 0,
 	})
+
+	ctx := context.Background()
+	status, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Fatalln("Redis connection was refused:", err)
+	}
+	log.Println("Redis ping:", status)
 
 	roleRepo := candidate_repo.NewRoleRepository(db)
 
@@ -72,10 +80,10 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, error) {
 	// start clean up of unverified users
 	email.StartUnverifiedCleanupJob(userRepo)
 
-	return app, authUseCase, tokenManager, nil
+	return app, authUseCase, tokenManager, rdb, nil
 }
 
-func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.TokenManager, kafkaLogger *logging.KafkaLogger) {
+func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.TokenManager, kafkaLogger *logging.KafkaLogger, rdb *redis.Client) {
 	log.Println("Starting server on port 8080...")
 
 	mux := http.NewServeMux()
@@ -104,6 +112,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 			candidate_repo.NewCandidateRepository(a.DB),
 			candidate_repo.NewVoteRepository(a.DB),
 			a.Blockchain,
+			rdb,
 		),
 		tokenManager.(*domain.JwtToken),
 		kafkaLogger,
@@ -116,6 +125,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 			candidate_repo.NewPetitionRepository(a.DB),
 			candidate_repo.NewPetitionVoteRepository(a.DB),
 			a.Blockchain,
+			rdb,
 		),
 		tokenManager.(*domain.JwtToken),
 		kafkaLogger,

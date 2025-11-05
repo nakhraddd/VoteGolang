@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -17,13 +18,13 @@ type Transaction struct {
 
 // Block represents a single block in the blockchain.
 type Block struct {
-	Index        int           `json:"index"`
-	Timestamp    time.Time     `json:"timestamp"`
-	Transaction  Transaction   `json:"transaction"`
-	PrevHash     string        `json:"prev_hash"`
-	Hash         string        `json:"hash"`
-	Nonce        int           `json:"nonce"`
-	Difficulty   int           `json:"difficulty"`
+	Index       int         `json:"index"`
+	Timestamp   time.Time   `json:"timestamp"`
+	Transaction Transaction `json:"transaction"`
+	PrevHash    string      `json:"prev_hash"`
+	Hash        string      `json:"hash"`
+	Nonce       int         `json:"nonce"`
+	Difficulty  int         `json:"difficulty"`
 }
 
 // Blockchain is a series of validated Blocks.
@@ -35,11 +36,11 @@ type Blockchain struct {
 // NewBlockchain creates a new Blockchain with a genesis Block.
 func NewBlockchain(difficulty int) *Blockchain {
 	genesisBlock := &Block{
-		Index:        0,
-		Timestamp:    time.Now(),
-		Transaction:  Transaction{Type: "genesis", Payload: "Genesis Block"},
-		PrevHash:     "",
-		Difficulty:   difficulty,
+		Index:       0,
+		Timestamp:   time.Now(),
+		Transaction: Transaction{Type: "genesis", Payload: "Genesis Block"},
+		PrevHash:    "",
+		Difficulty:  difficulty,
 	}
 	genesisBlock.Hash = genesisBlock.calculateHash()
 
@@ -69,30 +70,45 @@ func (b *Block) calculateHash() string {
 }
 
 // MineBlock finds a hash that satisfies the difficulty requirement (proof-of-work).
+
+//func (b *Block) MineBlock(difficulty int) {
+//	target := make([]byte, difficulty) // Creates a slice of `difficulty` zeros
+//	for {
+//		b.Hash = b.calculateHash()
+//		// Compare the first `difficulty` bytes of the hash with the target
+//		if b.Hash[:difficulty] == string(target) {
+//			break
+//		}
+//		b.Nonce++
+//	}
+//	fmt.Printf("Block mined: %s\n", b.Hash)
+//}
+
 func (b *Block) MineBlock(difficulty int) {
-	target := make([]byte, difficulty) // Creates a slice of `difficulty` zeros
+	target := ""
+	for i := 0; i < difficulty; i++ {
+		target += "0"
+	}
 	for {
 		b.Hash = b.calculateHash()
-		// Compare the first `difficulty` bytes of the hash with the target
-		if b.Hash[:difficulty] == string(target) {
+		if b.Hash[:difficulty] == target {
 			break
 		}
 		b.Nonce++
 	}
-	fmt.Printf("Block mined: %s\n", b.Hash)
+	log.Printf("✅ Block mined: %s\n", b.Hash)
 }
-
 
 // AddBlock creates a new block, mines it, and then adds it to the blockchain.
 func (bc *Blockchain) AddBlock(transaction Transaction) {
 	prevBlock := bc.Chain[len(bc.Chain)-1]
 	newBlock := &Block{
-		Index:        prevBlock.Index + 1,
-		Timestamp:    time.Now(),
-		Transaction:  transaction,
-		PrevHash:     prevBlock.Hash,
-		Difficulty:   bc.Difficulty,
-		Nonce:        0, // Start nonce from 0 for mining
+		Index:       prevBlock.Index + 1,
+		Timestamp:   time.Now(),
+		Transaction: transaction,
+		PrevHash:    prevBlock.Hash,
+		Difficulty:  bc.Difficulty,
+		Nonce:       0, // Start nonce from 0 for mining
 	}
 	newBlock.MineBlock(bc.Difficulty) // Perform proof-of-work
 	bc.Chain = append(bc.Chain, newBlock)

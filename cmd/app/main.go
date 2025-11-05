@@ -30,14 +30,16 @@ func main() {
 	kafkaLogger := logging.NewKafkaLogger(kafkaBroker, "app-logs", "vote-golang-api")
 	defer kafkaLogger.Close()
 
-	appInstance, authUseCase, tokenManager, err := app.NewApp()
+	appInstance, authUseCase, tokenManager, rdb, err := app.NewApp()
 	if err != nil {
 		log.Fatalf("Error initializing app: %v", err)
 	}
+
+	defer rdb.Close()
 
 	if err := kafkaLogger.Log("INFO", "App started"); err != nil {
 		log.Printf("Failed to send log to Kafka: %v", err)
 	}
 
-	appInstance.Run(authUseCase, tokenManager, kafkaLogger)
+	appInstance.Run(authUseCase, tokenManager, kafkaLogger, rdb)
 }

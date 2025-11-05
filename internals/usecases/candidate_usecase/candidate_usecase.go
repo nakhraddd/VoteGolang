@@ -3,8 +3,15 @@ package candidate_usecase
 import (
 	"VoteGolang/internals/blockchain"
 	candidate_data2 "VoteGolang/internals/domain"
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"log"
+	"math/rand"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // CandidateUseCase handles business logic related to election candidates.
@@ -12,18 +19,27 @@ type CandidateUseCase struct {
 	CandidateRepo candidate_data2.CandidateRepository
 	VoteRepo      candidate_data2.VoteRepository
 	Blockchain    *blockchain.Blockchain
+	Redis         *redis.Client
 }
 
-func NewCandidateUseCase(cRepo candidate_data2.CandidateRepository, vRepo candidate_data2.VoteRepository, bc *blockchain.Blockchain) *CandidateUseCase {
+func NewCandidateUseCase(cRepo candidate_data2.CandidateRepository, vRepo candidate_data2.VoteRepository, bc *blockchain.Blockchain, rdb *redis.Client) *CandidateUseCase {
 	return &CandidateUseCase{
 		CandidateRepo: cRepo,
 		VoteRepo:      vRepo,
 		Blockchain:    bc,
+		Redis:         rdb,
 	}
 }
 func (uc *CandidateUseCase) CreateCandidate(candidate *candidate_data2.Candidate) error {
 	if err := uc.CandidateRepo.Create(candidate); err != nil {
 		return err
+	}
+
+	// Invalidate cache
+	pattern := fmt.Sprintf("candidates:type:%s*", candidate.Type)
+	keys, _ := uc.Redis.Keys(context.Background(), pattern).Result()
+	for _, k := range keys {
+		uc.Redis.Del(context.Background(), k)
 	}
 
 	transaction := blockchain.Transaction{
@@ -35,12 +51,57 @@ func (uc *CandidateUseCase) CreateCandidate(candidate *candidate_data2.Candidate
 }
 
 func (uc *CandidateUseCase) GetAllByTypePaginated(candidateType string, limit, offset int) ([]candidate_data2.Candidate, error) {
-	return uc.CandidateRepo.GetAllByTypePaginated(candidateType, limit, offset)
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("candidates:type:%s:page:%d:limit:%d", candidateType, offset/limit+1, limit)
+
+	cached, err := uc.Redis.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var candidates []candidate_data2.Candidate
+		if err := json.Unmarshal([]byte(cached), &candidates); err == nil {
+			log.Println("Cache hit:", cacheKey)
+			return candidates, nil
+		}
+	}
+
+	log.Println("Cache miss:", cacheKey)
+
+	candidates, err := uc.CandidateRepo.GetAllByTypePaginated(candidateType, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	data, _ := json.Marshal(candidates)
+	uc.Redis.Set(ctx, cacheKey, data, time.Duration(rand.Intn(5)+25)*time.Minute) // 25–30 minutes
+
+	return candidates, nil
 }
 
 // GetAllByType returns a list of candidates filtered by type.
 func (uc *CandidateUseCase) GetAllByType(candidateType string) ([]candidate_data2.Candidate, error) {
-	return uc.CandidateRepo.GetAllByType(candidateType)
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("candidates:type:%s", candidateType)
+
+	// Try cache first
+	cached, err := uc.Redis.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var candidates []candidate_data2.Candidate
+		if err := json.Unmarshal([]byte(cached), &candidates); err == nil {
+			log.Println("Cache hit:", cacheKey)
+			return candidates, nil
+		}
+	}
+
+	log.Println("Cache miss:", cacheKey)
+	// Fallback to DB
+	candidates, err := uc.CandidateRepo.GetAllByType(candidateType)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save to Redis
+	data, _ := json.Marshal(candidates)
+	uc.Redis.Set(ctx, cacheKey, data, time.Duration(rand.Intn(5)+25)*time.Minute) // 25–30 minutes
+	return candidates, nil
 }
 
 // Vote votes for candidate by type, user_id, candidate_id.

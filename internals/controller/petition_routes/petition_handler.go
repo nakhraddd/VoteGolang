@@ -9,8 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -20,6 +18,11 @@ type PetitionHandler struct {
 	usecase      petittion_usecase.PetitionUseCase
 	TokenManager *petition_data2.JwtToken
 	KafkaLogger  *logging.KafkaLogger
+}
+
+type PaginationRequest struct {
+	Page  int `json:"page"`
+	Limit int `json:"limit"`
 }
 
 func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager *petition_data2.JwtToken, kafkaLogger *logging.KafkaLogger) *PetitionHandler {
@@ -86,19 +89,8 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 // @Success 200 {array} petition.Petition
 // @Router /petition/all [get]
 func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request) {
-	limitStr := r.URL.Query().Get("limit")
-	offsetStr := r.URL.Query().Get("offset")
 
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		limit = 10
-	}
-	offset, err := strconv.Atoi(offsetStr)
-	if err != nil || offset < 0 {
-		offset = 0
-	}
-
-	petitions, err := h.usecase.GetAllPetitionsPaginated(limit, offset)
+	petitions, err := h.usecase.GetAllPetitions()
 	if err != nil {
 		response.JSON(w, http.StatusInternalServerError, false, "Failed to get all paginated petitions: "+err.Error(), petitions)
 		return
@@ -111,28 +103,26 @@ func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {array} petition.Petition
-// @Router /petition/all/ [get]
+// @Router /petition/page/ [get]
 func (h *PetitionHandler) GetPetitionsByPage(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path // example: /petition/all/3
-	parts := strings.Split(path, "/")
-	if len(parts) < 4 {
-		response.JSON(w, http.StatusBadRequest, false, "Page number required", nil)
+	var req PaginationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.JSON(w, http.StatusBadRequest, false, "Invalid JSON", nil)
 		return
 	}
 
-	pageStr := parts[3]
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page <= 0 {
+	if req.Page <= 0 {
 		response.JSON(w, http.StatusBadRequest, false, "Invalid page number", nil)
 		return
 	}
+	if req.Limit <= 0 {
+		req.Limit = 5 // default
+	}
 
-	const limit = 1
-	offset := (page - 1) * limit
-
-	petitions, err := h.usecase.GetAllPetitionsPaginated(limit, offset)
+	offset := (req.Page - 1) * req.Limit
+	petitions, err := h.usecase.GetAllPetitionsPaginated(req.Limit, offset)
 	if err != nil {
-		response.JSON(w, http.StatusInternalServerError, false, "Failed to get all paginated petitions: "+err.Error(), nil)
+		response.JSON(w, http.StatusInternalServerError, false, "Failed to get petitions: "+err.Error(), nil)
 		return
 	}
 
