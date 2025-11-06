@@ -25,6 +25,10 @@ type PaginationRequest struct {
 	Limit int `json:"limit"`
 }
 
+type IDRequest struct {
+	ID uint `json:"id"`
+}
+
 func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager *petition_data2.JwtToken, kafkaLogger *logging.KafkaLogger) *PetitionHandler {
 	return &PetitionHandler{
 		usecase:      usecase,
@@ -130,7 +134,7 @@ func (h *PetitionHandler) GetPetitionsByPage(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request) {
-	var req petition_data2.PetitionIDRequest
+	var req IDRequest
 	// Decode JSON body
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.JSON(w, http.StatusBadRequest, false, "Invalid JSON body: "+err.Error(), nil)
@@ -238,7 +242,7 @@ func (h *PetitionHandler) DeletePetition(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Decode JSON body
-	var req petition_data2.PetitionIDRequest
+	var req IDRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.JSON(w, http.StatusBadRequest, false, "Invalid JSON body: "+err.Error(), nil)

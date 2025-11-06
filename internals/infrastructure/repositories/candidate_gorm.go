@@ -48,3 +48,7 @@ func (r *candidateGormRepository) IncrementVote(id uint) error {
 		Where("id = ?", id).
 		UpdateColumn("votes", gorm.Expr("votes + ?", 1)).Error
 }
+
+func (r *candidateGormRepository) DeleteByID(id uint) error {
+	return r.db.Delete(&domain.Candidate{}, id).Error
+}

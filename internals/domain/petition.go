@@ -50,10 +50,6 @@ type PetitionVoteRequest struct {
 	VoteType VoteType `json:"vote_type" enum:"favor,against" example:"favor, against"`
 }
 
-type PetitionIDRequest struct {
-	ID uint `json:"id"`
-}
-
 type VoteType string
 
 const (

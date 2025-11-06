@@ -31,6 +31,7 @@ type CandidateRepository interface {
 	GetByID(id uint) (*Candidate, error)
 	IncrementVote(id uint) error
 	GetAllByTypePaginated(candidateType string, limit, offset int) ([]Candidate, error)
+	DeleteByID(id uint) error
 }
 
 type CandidateType string

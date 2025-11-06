@@ -154,3 +154,24 @@ func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType ca
 
 	return nil
 }
+
+func (uc *CandidateUseCase) DeleteCandidate(id uint) error {
+	if err := uc.CandidateRepo.DeleteByID(id); err != nil {
+		return err
+	}
+
+	// Invalidate all petition caches
+	ctx := context.Background()
+	var cursor uint64
+	for {
+		keys, nextCursor, _ := uc.Redis.Scan(ctx, cursor, "candidates*", 100).Result()
+		for _, k := range keys {
+			uc.Redis.Del(ctx, k)
+		}
+		if nextCursor == 0 {
+			break
+		}
+		cursor = nextCursor
+	}
+	return nil
+}

@@ -29,10 +29,10 @@ func RegisterCandidateRoutes(mux *http.ServeMux, handler *CandidateHandler, toke
 			),
 		),
 	)
-	mux.Handle("/candidates/page",
+	mux.Handle("/candidate/page",
 		http2.JWTMiddleware(tokenManager)(
 			http2.RBACMiddleware(rbacRepo, "read_candidate")(
-				logRequest("/candidates/candidates_repository/all_by_page", handler.GetCandidatesByPage),
+				logRequest("/candidate/page", handler.GetCandidatesByPage),
 			),
 		),
 	)
@@ -40,20 +40,20 @@ func RegisterCandidateRoutes(mux *http.ServeMux, handler *CandidateHandler, toke
 	mux.Handle("/vote",
 		http2.JWTMiddleware(tokenManager)(
 			http2.RBACMiddleware(rbacRepo, "vote")(
-				logRequest("/candidate/vote", handler.Vote),
+				logRequest("/vote", handler.Vote),
 			),
 		),
 	)
 
-	mux.Handle("/candidates/create",
+	mux.Handle("/candidate/create",
 		http2.JWTMiddleware(tokenManager)(
 			http2.RBACMiddleware(rbacRepo, "create_candidate")(
-				logRequest("/candidates/create", handler.CreateCandidate),
+				logRequest("/candidate/create", handler.CreateCandidate),
 			),
 		),
 	)
 
-	mux.Handle("/candidates/delete",
+	mux.Handle("/candidate/delete",
 		http2.JWTMiddleware(tokenManager)(
 			http2.RBACMiddleware(rbacRepo, "delete_candidate")(
 				logRequest("/candidates/delete", handler.DeleteCandidate),

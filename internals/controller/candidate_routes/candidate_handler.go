@@ -20,6 +20,10 @@ type CandidateHandler struct {
 	KafkaLogger  *logging.KafkaLogger
 }
 
+type IDRequest struct {
+	ID uint `json:"id"`
+}
+
 func NewCandidateHandler(useCase *candidate_usecase.CandidateUseCase, tokenManager *candidate_data2.JwtToken, kafkaLogger *logging.KafkaLogger) *CandidateHandler {
 	return &CandidateHandler{
 		UseCase:      useCase,
@@ -217,5 +221,46 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CandidateHandler) DeleteCandidate(w http.ResponseWriter, r *http.Request) {
+	// Enforce POST or DELETE
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+		response.JSON(w, http.StatusMethodNotAllowed, false, "Only DELETE or POST allowed", nil)
+		return
+	}
 
+	// Authenticate user
+	token, err := http2.ExtractTokenFromRequest(r)
+	if err != nil {
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
+		return
+	}
+
+	payload := &candidate_data2.JwtClaims{}
+	_, err = jwt.ParseWithClaims(token, payload, func(t *jwt.Token) (interface{}, error) {
+		return h.TokenManager.Secret, nil
+	})
+	if err != nil {
+		response.JSON(w, http.StatusUnauthorized, false, "Invalid token: "+err.Error(), nil)
+		return
+	}
+
+	// Decode JSON body
+	var req IDRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.JSON(w, http.StatusBadRequest, false, "Invalid JSON body: "+err.Error(), nil)
+		return
+	}
+	if req.ID == 0 {
+		response.JSON(w, http.StatusBadRequest, false, "Missing or invalid candidate ID", nil)
+		return
+	}
+
+	// Perform delete
+	if err := h.UseCase.DeleteCandidate(req.ID); err != nil {
+		response.JSON(w, http.StatusInternalServerError, false, "Failed to delete candidate: "+err.Error(), nil)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, true, "Candidate deleted successfully", nil)
+	h.KafkaLogger.Log("INFO", fmt.Sprintf("Candidate deleted: %d", req.ID))
 }
