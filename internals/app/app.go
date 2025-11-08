@@ -14,6 +14,7 @@ import (
 	"VoteGolang/internals/domain"
 	"VoteGolang/internals/infrastructure/email"
 	candidate_repo "VoteGolang/internals/infrastructure/repositories"
+	"VoteGolang/internals/infrastructure/search"
 	"VoteGolang/internals/usecases/auth_usecase"
 	"VoteGolang/internals/usecases/candidate_usecase"
 	"VoteGolang/internals/usecases/petittion_usecase"
@@ -23,6 +24,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/redis/go-redis/v9"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"gorm.io/gorm"
@@ -34,17 +36,22 @@ type App struct {
 	Blockchain *blockchain.Blockchain
 }
 
-func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, *redis.Client, error) {
+func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, *redis.Client, *elasticsearch.Client, error) {
 	config := conf.LoadConfig()
 	db, err := connect.ConnectDB(config)
 
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	err = migrations.MigrateAllTables(db)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
+	}
+
+	esClient, err := connect.ConnectElasticsearch()
+	if err != nil {
+		log.Printf("⚠️ Failed to connect Elasticsearch: %v", err)
 	}
 
 	bc := blockchain.NewBlockchain(2)
@@ -80,10 +87,10 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, *redis.Clie
 	// start clean up of unverified users
 	email.StartUnverifiedCleanupJob(userRepo)
 
-	return app, authUseCase, tokenManager, rdb, nil
+	return app, authUseCase, tokenManager, rdb, esClient, nil
 }
 
-func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.TokenManager, kafkaLogger *logging.KafkaLogger, rdb *redis.Client) {
+func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.TokenManager, kafkaLogger *logging.KafkaLogger, rdb *redis.Client, esClient *elasticsearch.Client) {
 	log.Println("Starting server on port 8080...")
 
 	mux := http.NewServeMux()
@@ -106,6 +113,8 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	// create rbac repo once
 	rbacRepo := candidate_repo.NewRBACRepository(a.DB)
 
+	searchRepo := search.NewSearchRepository(esClient, "candidates")
+
 	// Candidate
 	candidateHandler := candidate_routes.NewCandidateHandler(
 		candidate_usecase.NewCandidateUseCase(
@@ -113,6 +122,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 			candidate_repo.NewVoteRepository(a.DB),
 			a.Blockchain,
 			rdb,
+			searchRepo,
 		),
 		tokenManager.(*domain.JwtToken),
 		kafkaLogger,

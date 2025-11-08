@@ -264,3 +264,22 @@ func (h *CandidateHandler) DeleteCandidate(w http.ResponseWriter, r *http.Reques
 	response.JSON(w, http.StatusOK, true, "Candidate deleted successfully", nil)
 	h.KafkaLogger.Log("INFO", fmt.Sprintf("Candidate deleted: %d", req.ID))
 }
+
+func (h *CandidateHandler) SearchCandidates(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Query string `json:"query"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Query == "" {
+		response.JSON(w, http.StatusBadRequest, false, "Query is required", nil)
+		return
+	}
+
+	results, err := h.UseCase.SearchRepo.Search(req.Query, "Name")
+	if err != nil {
+		response.JSON(w, http.StatusInternalServerError, false, "Search failed", err.Error())
+		return
+	}
+
+	response.JSON(w, http.StatusOK, true, "Search results", results)
+}

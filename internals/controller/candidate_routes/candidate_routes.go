@@ -56,7 +56,15 @@ func RegisterCandidateRoutes(mux *http.ServeMux, handler *CandidateHandler, toke
 	mux.Handle("/candidate/delete",
 		http2.JWTMiddleware(tokenManager)(
 			http2.RBACMiddleware(rbacRepo, "delete_candidate")(
-				logRequest("/candidates/delete", handler.DeleteCandidate),
+				logRequest("/candidate/delete", handler.DeleteCandidate),
+			),
+		),
+	)
+
+	mux.Handle("/candidate/search",
+		http2.JWTMiddleware(tokenManager)(
+			http2.RBACMiddleware(rbacRepo, "read_candidate")(
+				logRequest("/candidate/search", handler.SearchCandidates),
 			),
 		),
 	)

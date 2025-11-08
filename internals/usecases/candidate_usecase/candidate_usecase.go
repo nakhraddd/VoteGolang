@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"time"
 
+	"VoteGolang/internals/infrastructure/search"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -20,19 +21,31 @@ type CandidateUseCase struct {
 	VoteRepo      candidate_data2.VoteRepository
 	Blockchain    *blockchain.Blockchain
 	Redis         *redis.Client
+	SearchRepo    *search.SearchRepository
 }
 
-func NewCandidateUseCase(cRepo candidate_data2.CandidateRepository, vRepo candidate_data2.VoteRepository, bc *blockchain.Blockchain, rdb *redis.Client) *CandidateUseCase {
+func NewCandidateUseCase(cRepo candidate_data2.CandidateRepository, vRepo candidate_data2.VoteRepository, bc *blockchain.Blockchain, rdb *redis.Client, searchRepo *search.SearchRepository) *CandidateUseCase {
 	return &CandidateUseCase{
 		CandidateRepo: cRepo,
 		VoteRepo:      vRepo,
 		Blockchain:    bc,
 		Redis:         rdb,
+		SearchRepo:    searchRepo,
 	}
 }
 func (uc *CandidateUseCase) CreateCandidate(candidate *candidate_data2.Candidate) error {
 	if err := uc.CandidateRepo.Create(candidate); err != nil {
 		return err
+	}
+
+	// Index in Elasticsearch
+	if uc.SearchRepo != nil {
+		go func() {
+			id := fmt.Sprintf("%d", candidate.ID)
+			if err := uc.SearchRepo.IndexDocument(id, candidate); err != nil {
+				log.Printf("❌ Failed to index candidate: %v", err)
+			}
+		}()
 	}
 
 	// Invalidate cache
