@@ -43,7 +43,10 @@ func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager 
 // @Produce json
 // @Security BearerAuth
 // @Param petition body petition_data2.Petition true "Petition Data"
-// @Success 200 {string} string "Petition created"
+// @Success 201 {object} petition_data2.Petition "Petition created successfully"
+// @Failure 400 {object} response.JSONResponse "Invalid request body"
+// @Failure 401 {object} response.JSONResponse "Unauthorized"
+// @Failure 500 {object} response.JSONResponse "Internal server error"
 // @Router /petition/create [post]
 func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request) {
 	h.KafkaLogger.Log("INFO", fmt.Sprintf("Petition create attempt from %s", r.RemoteAddr))
@@ -90,9 +93,9 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 // @Tags Petition
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} petition_data2.Petition
+// @Success 200 {array} petition_data2.Petition "List of all petitions"
+// @Failure 500 {object} response.JSONResponse "Failed to get petitions"
 // @Router /petition/all [get]
-// @Param Authorization header string true "Bearer access token" example("Bearer eyJhbGciOi...")
 func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request) {
 
 	petitions, err := h.usecase.GetAllPetitions()
@@ -105,10 +108,14 @@ func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request
 
 // @Summary Get petitions by page
 // @Tags Petition
+// @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} petition_data2.Petition
-// @Router /petition/page/ [get]
+// @Param pagination body PaginationRequest true "Pagination info"
+// @Success 200 {array} petition_data2.Petition "List of petitions"
+// @Failure 400 {object} response.JSONResponse "Invalid page or limit"
+// @Failure 500 {object} response.JSONResponse "Failed to get petitions"
+// @Router /petition/page [post]
 func (h *PetitionHandler) GetPetitionsByPage(w http.ResponseWriter, r *http.Request) {
 	var req PaginationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -134,6 +141,16 @@ func (h *PetitionHandler) GetPetitionsByPage(w http.ResponseWriter, r *http.Requ
 	response.JSON(w, http.StatusOK, true, "OK", petitions)
 }
 
+// @Summary Get petition by ID
+// @Tags Petition
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id body IDRequest true "Petition ID"
+// @Success 200 {object} petition_data2.Petition "Petition details"
+// @Failure 400 {object} response.JSONResponse "Invalid ID"
+// @Failure 404 {object} response.JSONResponse "Petition not found"
+// @Router /petition/id [post]
 func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request) {
 	var req IDRequest
 	// Decode JSON body
@@ -160,9 +177,12 @@ func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param petitionVote body petition_data2.PetitionVoteRequest true "Petition petition data"
-// @Success 200 {string} string "Voted on petition"
-// @Failure 400 {string} string "Bad Request"
+// @Param petitionVote body petition_data2.PetitionVoteRequest true "Vote request"
+// @Success 200 {object} petition_data2.Petition "Vote registered"
+// @Failure 400 {object} response.JSONResponse "Invalid request"
+// @Failure 401 {object} response.JSONResponse "Unauthorized"
+// @Failure 403 {object} response.JSONResponse "Voting forbidden (deadline reached or goal met)"
+// @Failure 500 {object} response.JSONResponse "Failed to vote"
 // @Router /petition/vote [post]
 func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	h.KafkaLogger.Log("INFO", fmt.Sprintf("Petition vote attempt from %s", r.RemoteAddr))
@@ -219,6 +239,18 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, true, "OK", petition)
 }
 
+// @Summary Delete a petition
+// @Tags Petition
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id body IDRequest true "Petition ID"
+// @Success 200 {string} string "Petition deleted successfully"
+// @Failure 400 {object} response.JSONResponse "Invalid ID"
+// @Failure 401 {object} response.JSONResponse "Unauthorized"
+// @Failure 405 {object} response.JSONResponse "Method not allowed"
+// @Failure 500 {object} response.JSONResponse "Failed to delete petition"
+// @Router /petition/delete [delete]
 func (h *PetitionHandler) DeletePetition(w http.ResponseWriter, r *http.Request) {
 	// Enforce POST or DELETE
 	if r.Method != http.MethodDelete && r.Method != http.MethodPost {

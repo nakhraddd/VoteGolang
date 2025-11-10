@@ -398,24 +398,20 @@ const docTemplate = `{
                     "Petition"
                 ],
                 "summary": "Get all petitions",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "example": "\"Bearer eyJhbGciOi...\"",
-                        "description": "Bearer access token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "List of all petitions",
                         "schema": {
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/VoteGolang_internals_domain.Petition"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to get petitions",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     }
                 }
@@ -450,21 +446,154 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Petition created",
+                    "201": {
+                        "description": "Petition created successfully",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_domain.Petition"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     }
                 }
             }
         },
-        "/petition/page/": {
-            "get": {
+        "/petition/delete": {
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Petition"
+                ],
+                "summary": "Delete a petition",
+                "parameters": [
+                    {
+                        "description": "Petition ID",
+                        "name": "id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internals_controller_petition_routes.IDRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Petition deleted successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method not allowed",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to delete petition",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/petition/id": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Petition"
+                ],
+                "summary": "Get petition by ID",
+                "parameters": [
+                    {
+                        "description": "Petition ID",
+                        "name": "id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internals_controller_petition_routes.IDRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Petition details",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_domain.Petition"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Petition not found",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/petition/page": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -473,14 +602,37 @@ const docTemplate = `{
                     "Petition"
                 ],
                 "summary": "Get petitions by page",
+                "parameters": [
+                    {
+                        "description": "Pagination info",
+                        "name": "pagination",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internals_controller_petition_routes.PaginationRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "List of petitions",
                         "schema": {
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/VoteGolang_internals_domain.Petition"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid page or limit",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to get petitions",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     }
                 }
@@ -505,7 +657,7 @@ const docTemplate = `{
                 "summary": "Vote on a petition",
                 "parameters": [
                     {
-                        "description": "Petition petition data",
+                        "description": "Vote request",
                         "name": "petitionVote",
                         "in": "body",
                         "required": true,
@@ -516,15 +668,33 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Voted on petition",
+                        "description": "Vote registered",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_domain.Petition"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Voting forbidden (deadline reached or goal met)",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to vote",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     }
                 }
@@ -790,16 +960,20 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "petition description"
                 },
                 "goal": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 0
                 },
                 "photo": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "link"
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "petition title"
                 },
                 "voting_deadline": {
                     "type": "string",
@@ -944,6 +1118,25 @@ const docTemplate = `{
             "properties": {
                 "query": {
                     "type": "string"
+                }
+            }
+        },
+        "internals_controller_petition_routes.IDRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internals_controller_petition_routes.PaginationRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
                 }
             }
         }

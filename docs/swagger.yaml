@@ -61,12 +61,16 @@ definitions:
   VoteGolang_internals_domain.Petition:
     properties:
       description:
+        example: petition description
         type: string
       goal:
+        example: 0
         type: integer
       photo:
+        example: link
         type: string
       title:
+        example: petition title
         type: string
       voting_deadline:
         example: "2025-05-10T23:59:00+05:00"
@@ -166,6 +170,18 @@ definitions:
     properties:
       query:
         type: string
+    type: object
+  internals_controller_petition_routes.IDRequest:
+    properties:
+      id:
+        type: integer
+    type: object
+  internals_controller_petition_routes.PaginationRequest:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
     type: object
 host: localhost:8080
 info:
@@ -408,22 +424,19 @@ paths:
       - Auth
   /petition/all:
     get:
-      parameters:
-      - description: Bearer access token
-        example: '"Bearer eyJhbGciOi..."'
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: List of all petitions
           schema:
             items:
               $ref: '#/definitions/VoteGolang_internals_domain.Petition'
             type: array
+        "500":
+          description: Failed to get petitions
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
       security:
       - BearerAuth: []
       summary: Get all petitions
@@ -443,26 +456,125 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: Petition created
+        "201":
+          description: Petition created successfully
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_domain.Petition'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
       security:
       - BearerAuth: []
       summary: Create a petition
       tags:
       - Petition
-  /petition/page/:
-    get:
+  /petition/delete:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Petition ID
+        in: body
+        name: id
+        required: true
+        schema:
+          $ref: '#/definitions/internals_controller_petition_routes.IDRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Petition deleted successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "405":
+          description: Method not allowed
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "500":
+          description: Failed to delete petition
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a petition
+      tags:
+      - Petition
+  /petition/id:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Petition ID
+        in: body
+        name: id
+        required: true
+        schema:
+          $ref: '#/definitions/internals_controller_petition_routes.IDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Petition details
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_domain.Petition'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "404":
+          description: Petition not found
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+      security:
+      - BearerAuth: []
+      summary: Get petition by ID
+      tags:
+      - Petition
+  /petition/page:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Pagination info
+        in: body
+        name: pagination
+        required: true
+        schema:
+          $ref: '#/definitions/internals_controller_petition_routes.PaginationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of petitions
           schema:
             items:
               $ref: '#/definitions/VoteGolang_internals_domain.Petition'
             type: array
+        "400":
+          description: Invalid page or limit
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "500":
+          description: Failed to get petitions
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
       security:
       - BearerAuth: []
       summary: Get petitions by page
@@ -473,7 +585,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Petition petition data
+      - description: Vote request
         in: body
         name: petitionVote
         required: true
@@ -483,13 +595,25 @@ paths:
       - application/json
       responses:
         "200":
-          description: Voted on petition
+          description: Vote registered
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_domain.Petition'
         "400":
-          description: Bad Request
+          description: Invalid request
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "403":
+          description: Voting forbidden (deadline reached or goal met)
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "500":
+          description: Failed to vote
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
       security:
       - BearerAuth: []
       summary: Vote on a petition

@@ -10,12 +10,12 @@ import (
 type Petition struct {
 	ID             uint           `gorm:"primaryKey;autoIncrement" swaggerignore:"true"`
 	UserID         uint           `gorm:"not null" swaggerignore:"true"`
-	Title          string         `gorm:"type:varchar(255);not null"`
-	Photo          *string        `gorm:"type:varchar(255)"`
-	Description    *string        `gorm:"type:text"`
+	Title          string         `gorm:"type:varchar(255);not null" example:"petition title"`
+	Photo          *string        `gorm:"type:varchar(255)" example:"link"`
+	Description    *string        `gorm:"type:text" example:"petition description"`
 	VotesInFavor   int            `gorm:"default:0" swaggerignore:"true"`
 	VotesAgainst   int            `gorm:"default:0" swaggerignore:"true"`
-	Goal           int            `gorm:"not null"`
+	Goal           int            `gorm:"not null" example:"0"`
 	VotingDeadline time.Time      `json:"voting_deadline" gorm:"type:datetime" example:"2025-05-10T23:59:00+05:00"`
 	DeletedAt      gorm.DeletedAt `json:"-" swaggerignore:"true"`
 	CreatedAt      time.Time      `gorm:"autoCreateTime" swaggerignore:"true"`
