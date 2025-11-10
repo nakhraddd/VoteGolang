@@ -37,6 +37,14 @@ func RegisterCandidateRoutes(mux *http.ServeMux, handler *CandidateHandler, toke
 		),
 	)
 
+	mux.Handle("/candidate/",
+		http2.JWTMiddleware(tokenManager)(
+			http2.RBACMiddleware(rbacRepo, "read_candidate")(
+				logRequest("/candidate/", handler.GetCandidateByID),
+			),
+		),
+	)
+
 	mux.Handle("/vote",
 		http2.JWTMiddleware(tokenManager)(
 			http2.RBACMiddleware(rbacRepo, "vote")(

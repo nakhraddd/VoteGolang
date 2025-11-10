@@ -41,6 +41,12 @@ func (s *SearchRepository) IndexDocument(id string, data interface{}) error {
 
 // Search performs full-text search on a specific field
 func (s *SearchRepository) Search(query string, field string) ([]map[string]interface{}, error) {
+	// Check if client is initialized
+	if s == nil || s.Client == nil {
+		return nil, fmt.Errorf("Search service unavailable")
+	}
+
+	// Build the search request
 	body := map[string]interface{}{
 		"query": map[string]interface{}{
 			"match": map[string]interface{}{
@@ -53,6 +59,7 @@ func (s *SearchRepository) Search(query string, field string) ([]map[string]inte
 		return nil, err
 	}
 
+	// Perform search
 	res, err := s.Client.Search(
 		s.Client.Search.WithContext(context.Background()),
 		s.Client.Search.WithIndex(s.Index),
@@ -67,6 +74,7 @@ func (s *SearchRepository) Search(query string, field string) ([]map[string]inte
 		return nil, fmt.Errorf("search error: %s", res.String())
 	}
 
+	// Parse hits
 	var result map[string]interface{}
 	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
 		return nil, err

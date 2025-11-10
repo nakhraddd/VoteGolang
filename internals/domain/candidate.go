@@ -8,17 +8,17 @@ import (
 
 // Candidate represents a candidate for election.
 type Candidate struct {
-	ID             uint           `gorm:"primaryKey;autoIncrement"`
-	Name           string         `gorm:"type:varchar(255);not null"`
-	Photo          *string        `gorm:"type:varchar(255)"`
-	Education      *string        `gorm:"type:varchar(255)"`
-	Age            int            `gorm:"not null"`
-	Party          *string        `gorm:"type:varchar(255)"`
-	Region         *string        `gorm:"type:varchar(255)"`
-	Votes          int            `gorm:"default:0"`
-	Type           CandidateType  `gorm:"type:varchar(255);not null"`
-	VotingStart    time.Time      `json:"voting_start" gorm:"type:datetime"`
-	VotingDeadline time.Time      `json:"voting_deadline" gorm:"type:datetime"`
+	ID             uint           `gorm:"primaryKey;autoIncrement" swaggerignore:"true"`
+	Name           string         `gorm:"type:varchar(255);not null" example:"Beksultan"`
+	Photo          *string        `gorm:"type:varchar(255)" example:"link"`
+	Education      *string        `gorm:"type:varchar(255)" example:"KBTU"`
+	Age            int            `gorm:"not null" example:"20"`
+	Party          *string        `gorm:"type:varchar(255)" example:"Jastar"`
+	Region         *string        `gorm:"type:varchar(255)" example:"SKO"`
+	Votes          int            `gorm:"default:0" swaggerignore:"true"`
+	Type           CandidateType  `gorm:"type:varchar(255);not null" example:"manager"`
+	VotingStart    time.Time      `json:"voting_start" gorm:"type:datetime" example:"2025-11-12T09:00:00+05:00"`
+	VotingDeadline time.Time      `json:"voting_deadline" gorm:"type:datetime" example:"2026-11-12T09:00:00+05:00"`
 	DeletedAt      gorm.DeletedAt `json:"-" swaggerignore:"true"`
 	CreatedAt      time.Time      `gorm:"autoCreateTime" swaggerignore:"true"`
 	UpdatedAt      time.Time      `gorm:"autoUpdateTime" swaggerignore:"true"`

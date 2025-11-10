@@ -21,7 +21,23 @@ type CandidateHandler struct {
 }
 
 type IDRequest struct {
-	ID uint `json:"id"`
+	ID uint `json:"id" example:"1"`
+}
+
+// Структура для JSON-запроса
+type candidateTypeRequest struct {
+	Type string `json:"type" example:"manager"`
+}
+
+// Parse JSON body
+type candidatesByPageRequest struct {
+	Type  string `json:"type" example:"manager"`
+	Page  int    `json:"page" example:"1"`
+	Limit int    `json:"limit" example:"10"`
+}
+
+type searchRequest struct {
+	Query string `json:"query"`
 }
 
 func NewCandidateHandler(useCase *candidate_usecase.CandidateUseCase, tokenManager *candidate_data2.JwtToken, kafkaLogger *logging.KafkaLogger) *CandidateHandler {
@@ -35,12 +51,12 @@ func NewCandidateHandler(useCase *candidate_usecase.CandidateUseCase, tokenManag
 // @Summary Get candidates by type
 // @Tags Candidates
 // @Produce json
-// @Param type query string true "Candidate Type"
+// @Param candidateType body candidateTypeRequest true "Candidate Type"
 // @Security BearerAuth
-// @Success 200 {array} candidate.Candidate "List of candidates"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /candidates [get]
+// @Success 200 {array} candidate_data2.Candidate "List of candidates"
+// @Failure 400 {object} response.JSONResponse "Bad Request"
+// @Failure 500 {object} response.JSONResponse "Internal Server Error"
+// @Router /candidates [post]
 func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	// Проверяем, что метод — POST (или другой, если нужно)
 	if r.Method != http.MethodPost {
@@ -48,10 +64,7 @@ func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Структура для JSON-запроса
-	var req struct {
-		Type string `json:"type"`
-	}
+	var req candidateTypeRequest
 
 	// Парсим JSON из тела запроса
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -75,6 +88,17 @@ func (h *CandidateHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, true, "Candidates retrieved successfully", candidates)
 }
 
+// @Summary Create a candidate
+// @Tags Candidates
+// @Accept json
+// @Produce json
+// @Param candidate body candidate_data2.Candidate true "Candidate data"
+// @Security BearerAuth
+// @Success 201 {object} candidate_data2.Candidate "Candidate created successfully"
+// @Failure 400 {object} response.JSONResponse "Bad Request"
+// @Failure 401 {object} response.JSONResponse "Unauthorized"
+// @Failure 500 {object} response.JSONResponse "Internal Server Error"
+// @Router /candidate/create [post]
 func (h *CandidateHandler) CreateCandidate(w http.ResponseWriter, r *http.Request) {
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
@@ -113,12 +137,12 @@ func (h *CandidateHandler) CreateCandidate(w http.ResponseWriter, r *http.Reques
 // @Summary Get candidates by type by page
 // @Tags Candidates
 // @Produce json
-// @Param type query string true "Candidate Type"
+// @Param candidateType body candidatesByPageRequest true "Candidates By Page"
 // @Security BearerAuth
-// @Success 200 {array} candidate.Candidate "List of candidates"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /candidates/ [get]
+// @Success 200 {array} candidate_data2.Candidate "List of candidates"
+// @Failure 400 {object} response.JSONResponse "Bad Request"
+// @Failure 500 {object} response.JSONResponse "Internal Server Error"
+// @Router /candidates/ [post]
 func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Request) {
 	// Only allow POST for JSON body
 	if r.Method != http.MethodPost {
@@ -126,12 +150,7 @@ func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Parse JSON body
-	var req struct {
-		Type  string `json:"type"`
-		Page  int    `json:"page"`
-		Limit int    `json:"limit"`
-	}
+	var req candidatesByPageRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.JSON(w, http.StatusBadRequest, false, "Invalid JSON body", err.Error())
@@ -167,15 +186,46 @@ func (h *CandidateHandler) GetCandidatesByPage(w http.ResponseWriter, r *http.Re
 	response.JSON(w, http.StatusOK, true, "Candidates retrieved successfully", candidates)
 }
 
+// @Summary Get candidate by ID
+// @Tags Candidates
+// @Accept json
+// @Produce json
+// @Param id body IDRequest true "Candidate ID"
+// @Security BearerAuth
+// @Success 200 {object} candidate_data2.Candidate "Candidate details"
+// @Failure 400 {object} response.JSONResponse "Bad Request"
+// @Failure 404 {object} response.JSONResponse "Candidate not found"
+// @Router /candidate/ [post]
+func (h *CandidateHandler) GetCandidateByID(w http.ResponseWriter, r *http.Request) {
+	var req IDRequest
+	// Decode JSON body
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.JSON(w, http.StatusBadRequest, false, "Invalid JSON body: "+err.Error(), nil)
+		return
+	}
+	// Validate ID
+	if req.ID == 0 {
+		response.JSON(w, http.StatusBadRequest, false, "Missing or invalid ID", nil)
+		return
+	}
+	// Fetch candidate
+	candidate, err := h.UseCase.GetCandidateByID(req.ID)
+	if err != nil {
+		response.JSON(w, http.StatusNotFound, false, "Candidate not found: "+err.Error(), nil)
+		return
+	}
+	response.JSON(w, http.StatusOK, true, "OK", candidate)
+}
+
 // @Summary Vote for a candidate
 // @Tags Candidates
 // @Accept json
 // @Produce json
+// @Param candidate body candidate_data2.VoteRequest true "Candidate vote data"
 // @Security BearerAuth
-// @Param candidate body candidate.VoteRequest true "Candidate vote data"
-// @Success 200 {string} string "Vote successful"
-// @Failure 400 {string} string "Invalid request format or duplicate petition"
-// @Failure 401 {string} string "Unauthorized"
+// @Success 200 {object} response.JSONResponse "Vote successful"
+// @Failure 400 {object} response.JSONResponse "Invalid request or duplicate petition"
+// @Failure 401 {object} response.JSONResponse "Unauthorized"
 // @Router /vote [post]
 func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	h.KafkaLogger.Log("INFO", fmt.Sprintf("Candidate vote attempt from %s", r.RemoteAddr))
@@ -220,6 +270,17 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, true, "Vote successfully", nil)
 }
 
+// @Summary Delete a candidate
+// @Tags Candidates
+// @Accept json
+// @Produce json
+// @Param id body IDRequest true "Candidate ID"
+// @Security BearerAuth
+// @Success 200 {object} response.JSONResponse "Candidate deleted successfully"
+// @Failure 400 {object} response.JSONResponse "Bad Request"
+// @Failure 401 {object} response.JSONResponse "Unauthorized"
+// @Failure 500 {object} response.JSONResponse "Internal Server Error"
+// @Router /candidate/delete [delete]
 func (h *CandidateHandler) DeleteCandidate(w http.ResponseWriter, r *http.Request) {
 	// Enforce POST or DELETE
 	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
@@ -265,10 +326,18 @@ func (h *CandidateHandler) DeleteCandidate(w http.ResponseWriter, r *http.Reques
 	h.KafkaLogger.Log("INFO", fmt.Sprintf("Candidate deleted: %d", req.ID))
 }
 
+// @Summary Search candidates by name
+// @Tags Candidates
+// @Accept json
+// @Produce json
+// @Param query body searchRequest true "Search query"
+// @Security BearerAuth
+// @Success 200 {array} candidate_data2.Candidate "Search results"
+// @Failure 400 {object} response.JSONResponse "Query is required"
+// @Failure 500 {object} response.JSONResponse "Search failed"
+// @Router /candidate/search [post]
 func (h *CandidateHandler) SearchCandidates(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Query string `json:"query"`
-	}
+	var req searchRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Query == "" {
 		response.JSON(w, http.StatusBadRequest, false, "Query is required", nil)

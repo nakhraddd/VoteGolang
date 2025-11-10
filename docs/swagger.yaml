@@ -1,40 +1,54 @@
 basePath: /
 definitions:
-  auth_data.AuthRequest:
+  VoteGolang_internals_controller_http_response.JSONResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  VoteGolang_internals_domain.AuthRequest:
     properties:
       password:
+        example: admin123
         type: string
       username:
+        example: admin
         type: string
     type: object
-  candidate_data.Candidate:
+  VoteGolang_internals_domain.Candidate:
     properties:
       age:
+        example: 20
         type: integer
       education:
+        example: KBTU
         type: string
-      id:
-        type: integer
       name:
+        example: Beksultan
         type: string
       party:
+        example: Jastar
         type: string
       photo:
+        example: link
         type: string
       region:
+        example: SKO
         type: string
       type:
-        $ref: '#/definitions/candidate_data.CandidateType'
-      votes:
-        type: integer
-      votingDeadline:
-        example: "2025-05-10T23:59:00+05:00"
+        allOf:
+        - $ref: '#/definitions/VoteGolang_internals_domain.CandidateType'
+        example: manager
+      voting_deadline:
+        example: "2026-11-12T09:00:00+05:00"
         type: string
-      votingStart:
-        example: "2025-05-10T23:59:00+05:00"
+      voting_start:
+        example: "2025-11-12T09:00:00+05:00"
         type: string
     type: object
-  candidate_data.CandidateType:
+  VoteGolang_internals_domain.CandidateType:
     enum:
     - presidential
     - deputy
@@ -44,7 +58,67 @@ definitions:
     - Presidential
     - Deputy
     - Manager
-  candidate_data.VoteRequest:
+  VoteGolang_internals_domain.Petition:
+    properties:
+      description:
+        type: string
+      goal:
+        type: integer
+      photo:
+        type: string
+      title:
+        type: string
+      voting_deadline:
+        example: "2025-05-10T23:59:00+05:00"
+        type: string
+    type: object
+  VoteGolang_internals_domain.PetitionVoteRequest:
+    properties:
+      petition_id:
+        type: integer
+      vote_type:
+        allOf:
+        - $ref: '#/definitions/VoteGolang_internals_domain.VoteType'
+        description: 'Enum values: favor, against'
+        example: favor, against
+    type: object
+  VoteGolang_internals_domain.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  VoteGolang_internals_domain.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  VoteGolang_internals_domain.User:
+    properties:
+      address:
+        example: 59, Tole Bi St, Almaty
+        type: string
+      birthDate:
+        example: "2004-07-16T00:00:00Z"
+        type: string
+      email:
+        example: zhaslanbeksultan@gmail.com
+        type: string
+      password:
+        example: $Password123
+        type: string
+      roleID:
+        example: 2
+        type: integer
+      userFullName:
+        example: Beksultan Zhaslan
+        type: string
+      username:
+        example: beks
+        type: string
+    type: object
+  VoteGolang_internals_domain.VoteRequest:
     properties:
       candidate_id:
         type: integer
@@ -56,31 +130,7 @@ definitions:
         example: presidential, deputy, manager
         type: string
     type: object
-  petition_data.Petition:
-    properties:
-      description:
-        type: string
-      goal:
-        type: integer
-      photo:
-        type: string
-      title:
-        type: string
-      votingDeadline:
-        example: "2025-05-10T23:59:00+05:00"
-        type: string
-    type: object
-  petition_data.PetitionVoteRequest:
-    properties:
-      petition_id:
-        type: integer
-      vote_type:
-        allOf:
-        - $ref: '#/definitions/petition_data.VoteType'
-        description: 'Enum values: favor, against'
-        example: favor, against
-    type: object
-  petition_data.VoteType:
+  VoteGolang_internals_domain.VoteType:
     enum:
     - favor
     - against
@@ -88,6 +138,35 @@ definitions:
     x-enum-varnames:
     - Favor
     - Against
+  internals_controller_candidate_routes.IDRequest:
+    properties:
+      id:
+        example: 1
+        type: integer
+    type: object
+  internals_controller_candidate_routes.candidateTypeRequest:
+    properties:
+      type:
+        example: manager
+        type: string
+    type: object
+  internals_controller_candidate_routes.candidatesByPageRequest:
+    properties:
+      limit:
+        example: 10
+        type: integer
+      page:
+        example: 1
+        type: integer
+      type:
+        example: manager
+        type: string
+    type: object
+  internals_controller_candidate_routes.searchRequest:
+    properties:
+      query:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -101,14 +180,149 @@ info:
   title: Online Election Vote
   version: "1.0"
 paths:
+  /candidate/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Candidate ID
+        in: body
+        name: id
+        required: true
+        schema:
+          $ref: '#/definitions/internals_controller_candidate_routes.IDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Candidate details
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_domain.Candidate'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "404":
+          description: Candidate not found
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+      security:
+      - BearerAuth: []
+      summary: Get candidate by ID
+      tags:
+      - Candidates
+  /candidate/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Candidate data
+        in: body
+        name: candidate
+        required: true
+        schema:
+          $ref: '#/definitions/VoteGolang_internals_domain.Candidate'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Candidate created successfully
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_domain.Candidate'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a candidate
+      tags:
+      - Candidates
+  /candidate/delete:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Candidate ID
+        in: body
+        name: id
+        required: true
+        schema:
+          $ref: '#/definitions/internals_controller_candidate_routes.IDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Candidate deleted successfully
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a candidate
+      tags:
+      - Candidates
+  /candidate/search:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Search query
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/internals_controller_candidate_routes.searchRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Search results
+          schema:
+            items:
+              $ref: '#/definitions/VoteGolang_internals_domain.Candidate'
+            type: array
+        "400":
+          description: Query is required
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "500":
+          description: Search failed
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+      security:
+      - BearerAuth: []
+      summary: Search candidates by name
+      tags:
+      - Candidates
   /candidates:
-    get:
+    post:
       parameters:
       - description: Candidate Type
-        in: query
-        name: type
+        in: body
+        name: candidateType
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/internals_controller_candidate_routes.candidateTypeRequest'
       produces:
       - application/json
       responses:
@@ -116,29 +330,30 @@ paths:
           description: List of candidates
           schema:
             items:
-              $ref: '#/definitions/candidate_data.Candidate'
+              $ref: '#/definitions/VoteGolang_internals_domain.Candidate'
             type: array
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
       security:
       - BearerAuth: []
       summary: Get candidates by type
       tags:
       - Candidates
   /candidates/:
-    get:
+    post:
       parameters:
-      - description: Candidate Type
-        in: query
-        name: type
+      - description: Candidates By Page
+        in: body
+        name: candidateType
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/internals_controller_candidate_routes.candidatesByPageRequest'
       produces:
       - application/json
       responses:
@@ -146,16 +361,16 @@ paths:
           description: List of candidates
           schema:
             items:
-              $ref: '#/definitions/candidate_data.Candidate'
+              $ref: '#/definitions/VoteGolang_internals_domain.Candidate'
             type: array
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
       security:
       - BearerAuth: []
       summary: Get candidates by type by page
@@ -165,31 +380,41 @@ paths:
     post:
       consumes:
       - application/json
+      description: Authenticates a user and returns access and refresh tokens.
       parameters:
-      - description: Username and Password
+      - description: User credentials
         in: body
         name: credentials
         required: true
         schema:
-          $ref: '#/definitions/auth_data.AuthRequest'
+          $ref: '#/definitions/VoteGolang_internals_domain.AuthRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/VoteGolang_internals_domain.TokenResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
-      summary: Login and get access tokens
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+      summary: User login
       tags:
       - Auth
   /petition/all:
     get:
+      parameters:
+      - description: Bearer access token
+        example: '"Bearer eyJhbGciOi..."'
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -197,27 +422,11 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/petition_data.Petition'
+              $ref: '#/definitions/VoteGolang_internals_domain.Petition'
             type: array
       security:
       - BearerAuth: []
       summary: Get all petitions
-      tags:
-      - Petition
-  /petition/all/:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/petition_data.Petition'
-            type: array
-      security:
-      - BearerAuth: []
-      summary: Get petitions by page
       tags:
       - Petition
   /petition/create:
@@ -230,7 +439,7 @@ paths:
         name: petition
         required: true
         schema:
-          $ref: '#/definitions/petition_data.Petition'
+          $ref: '#/definitions/VoteGolang_internals_domain.Petition'
       produces:
       - application/json
       responses:
@@ -243,6 +452,22 @@ paths:
       summary: Create a petition
       tags:
       - Petition
+  /petition/page/:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/VoteGolang_internals_domain.Petition'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get petitions by page
+      tags:
+      - Petition
   /petition/vote:
     post:
       consumes:
@@ -253,7 +478,7 @@ paths:
         name: petitionVote
         required: true
         schema:
-          $ref: '#/definitions/petition_data.PetitionVoteRequest'
+          $ref: '#/definitions/VoteGolang_internals_domain.PetitionVoteRequest'
       produces:
       - application/json
       responses:
@@ -270,29 +495,85 @@ paths:
       summary: Vote on a petition
       tags:
       - Petition
-  /register:
+  /refresh:
     post:
       consumes:
       - application/json
+      description: Generates a new pair of access and refresh tokens using a valid
+        refresh token.
       parameters:
-      - description: Username and Password
+      - description: Refresh token
         in: body
-        name: credentials
+        name: token
         required: true
         schema:
-          $ref: '#/definitions/auth_data.AuthRequest'
+          $ref: '#/definitions/VoteGolang_internals_domain.RefreshRequest'
       produces:
       - application/json
       responses:
         "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_domain.TokenResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+      summary: Refresh access token
+      tags:
+      - Auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account and sends an email verification link.
+      parameters:
+      - description: User registration data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/VoteGolang_internals_domain.User'
+      produces:
+      - application/json
+      responses:
+        "201":
           description: User registered successfully
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
         "400":
-          description: Invalid Request
+          description: Invalid request
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
       summary: Register a new user
+      tags:
+      - Auth
+  /verify-email:
+    get:
+      description: Verifies the user's email using a token sent in the verification
+        link.
+      parameters:
+      - description: Email verification token
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email verified successfully
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+        "400":
+          description: Invalid or missing token
+          schema:
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
+      summary: Verify email address
       tags:
       - Auth
   /vote:
@@ -305,22 +586,22 @@ paths:
         name: candidate
         required: true
         schema:
-          $ref: '#/definitions/candidate_data.VoteRequest'
+          $ref: '#/definitions/VoteGolang_internals_domain.VoteRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Vote successful
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
         "400":
-          description: Invalid request format or duplicate petition
+          description: Invalid request or duplicate petition
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/VoteGolang_internals_controller_http_response.JSONResponse'
       security:
       - BearerAuth: []
       summary: Vote for a candidate

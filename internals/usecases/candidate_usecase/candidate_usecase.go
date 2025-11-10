@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"VoteGolang/internals/infrastructure/search"
+
 	"github.com/redis/go-redis/v9"
 )
 
@@ -117,6 +118,29 @@ func (uc *CandidateUseCase) GetAllByType(candidateType string) ([]candidate_data
 	return candidates, nil
 }
 
+func (uc *CandidateUseCase) GetCandidateByID(id uint) (*candidate_data2.Candidate, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("candidate:%d", id)
+
+	if cached, err := uc.Redis.Get(ctx, cacheKey).Result(); err == nil {
+		var candidate candidate_data2.Candidate
+		if json.Unmarshal([]byte(cached), &candidate) == nil {
+			log.Println("Cache hit:", cacheKey)
+			return &candidate, nil
+		}
+	}
+
+	log.Println("Cache miss:", cacheKey)
+	candidate, err := uc.CandidateRepo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	data, _ := json.Marshal(candidate)
+	uc.Redis.Set(ctx, cacheKey, data, 5*time.Minute)
+	return candidate, nil
+}
+
 // Vote votes for candidate by type, user_id, candidate_id.
 func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType candidate_data2.CandidateType) error {
 	if !candidate_data2.IsValidCandidateType(string(candidateType)) {
@@ -173,7 +197,7 @@ func (uc *CandidateUseCase) DeleteCandidate(id uint) error {
 		return err
 	}
 
-	// Invalidate all petition caches
+	// Invalidate all candidate caches
 	ctx := context.Background()
 	var cursor uint64
 	for {

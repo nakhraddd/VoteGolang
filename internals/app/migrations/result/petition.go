@@ -1,16 +1,13 @@
 package result
 
 // Migration summary for petition
-// Table: petitions
+// Table: votes
 // -----------------------------------
-// CREATE TABLE petitions (
+// CREATE TABLE votes (
 //   id uint PRIMARY KEY AUTO_INCREMENT,
-//   user_id varchar(255) NOT NULL,
-//   title varchar(255) NOT NULL,
-//   photo varchar(255),
-//   description text,
-//   votes_in_favor int DEFAULT '0',
-//   votes_against int DEFAULT '0',
+//   user_id uint NOT NULL,
+//   candidate_id uint NOT NULL,
+//   candidate_type varchar(50) NOT NULL,
 //   deleted_at time,
 //   created_at time,
 //   updated_at time,

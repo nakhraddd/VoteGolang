@@ -23,8 +23,223 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/candidate/": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Candidates"
+                ],
+                "summary": "Get candidate by ID",
+                "parameters": [
+                    {
+                        "description": "Candidate ID",
+                        "name": "id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internals_controller_candidate_routes.IDRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Candidate details",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_domain.Candidate"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Candidate not found",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/candidate/create": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Candidates"
+                ],
+                "summary": "Create a candidate",
+                "parameters": [
+                    {
+                        "description": "Candidate data",
+                        "name": "candidate",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_domain.Candidate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Candidate created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_domain.Candidate"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/candidate/delete": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Candidates"
+                ],
+                "summary": "Delete a candidate",
+                "parameters": [
+                    {
+                        "description": "Candidate ID",
+                        "name": "id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internals_controller_candidate_routes.IDRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Candidate deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/candidate/search": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Candidates"
+                ],
+                "summary": "Search candidates by name",
+                "parameters": [
+                    {
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internals_controller_candidate_routes.searchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Search results",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/VoteGolang_internals_domain.Candidate"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Query is required",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Search failed",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/candidates": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -39,11 +254,13 @@ const docTemplate = `{
                 "summary": "Get candidates by type",
                 "parameters": [
                     {
-                        "type": "string",
                         "description": "Candidate Type",
-                        "name": "type",
-                        "in": "query",
-                        "required": true
+                        "name": "candidateType",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internals_controller_candidate_routes.candidateTypeRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -52,27 +269,27 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/candidate.Candidate"
+                                "$ref": "#/definitions/VoteGolang_internals_domain.Candidate"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     }
                 }
             }
         },
         "/candidates/": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -87,11 +304,13 @@ const docTemplate = `{
                 "summary": "Get candidates by type by page",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Candidate Type",
-                        "name": "type",
-                        "in": "query",
-                        "required": true
+                        "description": "Candidates By Page",
+                        "name": "candidateType",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internals_controller_candidate_routes.candidatesByPageRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -100,20 +319,20 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/candidate.Candidate"
+                                "$ref": "#/definitions/VoteGolang_internals_domain.Candidate"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     }
                 }
@@ -121,6 +340,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
+                "description": "Authenticates a user and returns access and refresh tokens.",
                 "consumes": [
                     "application/json"
                 ],
@@ -130,15 +350,15 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Login and get access tokens",
+                "summary": "User login",
                 "parameters": [
                     {
-                        "description": "Username and Password",
+                        "description": "User credentials",
                         "name": "credentials",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.AuthRequest"
+                            "$ref": "#/definitions/VoteGolang_internals_domain.AuthRequest"
                         }
                     }
                 ],
@@ -146,16 +366,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/VoteGolang_internals_domain.TokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     }
                 }
@@ -175,40 +398,23 @@ const docTemplate = `{
                     "Petition"
                 ],
                 "summary": "Get all petitions",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/petition.Petition"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/petition/all/": {
-            "get": {
-                "security": [
+                "parameters": [
                     {
-                        "BearerAuth": []
+                        "type": "string",
+                        "example": "\"Bearer eyJhbGciOi...\"",
+                        "description": "Bearer access token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
                     }
                 ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Petition"
-                ],
-                "summary": "Get petitions by page",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/petition.Petition"
+                                "$ref": "#/definitions/VoteGolang_internals_domain.Petition"
                             }
                         }
                     }
@@ -239,7 +445,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/petition.Petition"
+                            "$ref": "#/definitions/VoteGolang_internals_domain.Petition"
                         }
                     }
                 ],
@@ -248,6 +454,33 @@ const docTemplate = `{
                         "description": "Petition created",
                         "schema": {
                             "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/petition/page/": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Petition"
+                ],
+                "summary": "Get petitions by page",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/VoteGolang_internals_domain.Petition"
+                            }
                         }
                     }
                 }
@@ -277,7 +510,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/petition.PetitionVoteRequest"
+                            "$ref": "#/definitions/VoteGolang_internals_domain.PetitionVoteRequest"
                         }
                     }
                 ],
@@ -297,8 +530,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/refresh": {
+            "post": {
+                "description": "Generates a new pair of access and refresh tokens using a valid refresh token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Refresh access token",
+                "parameters": [
+                    {
+                        "description": "Refresh token",
+                        "name": "token",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_domain.RefreshRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_domain.TokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/register": {
             "post": {
+                "description": "Creates a new user account and sends an email verification link.",
                 "consumes": [
                     "application/json"
                 ],
@@ -311,26 +591,61 @@ const docTemplate = `{
                 "summary": "Register a new user",
                 "parameters": [
                     {
-                        "description": "Username and Password",
-                        "name": "credentials",
+                        "description": "User registration data",
+                        "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.AuthRequest"
+                            "$ref": "#/definitions/VoteGolang_internals_domain.User"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "User registered successfully",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid Request",
+                        "description": "Invalid request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/verify-email": {
+            "get": {
+                "description": "Verifies the user's email using a token sent in the verification link.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Verify email address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Email verification token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email verified successfully",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     }
                 }
@@ -360,7 +675,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/candidate.VoteRequest"
+                            "$ref": "#/definitions/VoteGolang_internals_domain.VoteRequest"
                         }
                     }
                 ],
@@ -368,19 +683,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Vote successful",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid request format or duplicate petition",
+                        "description": "Invalid request or duplicate petition",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/VoteGolang_internals_controller_http_response.JSONResponse"
                         }
                     }
                 }
@@ -388,58 +703,77 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "auth.AuthRequest": {
+        "VoteGolang_internals_controller_http_response.JSONResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "VoteGolang_internals_domain.AuthRequest": {
             "type": "object",
             "properties": {
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "admin123"
                 },
                 "username": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "admin"
                 }
             }
         },
-        "candidate.Candidate": {
+        "VoteGolang_internals_domain.Candidate": {
             "type": "object",
             "properties": {
                 "age": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 20
                 },
                 "education": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
+                    "type": "string",
+                    "example": "KBTU"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Beksultan"
                 },
                 "party": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Jastar"
                 },
                 "photo": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "link"
                 },
                 "region": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "SKO"
                 },
                 "type": {
-                    "$ref": "#/definitions/candidate.CandidateType"
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/VoteGolang_internals_domain.CandidateType"
+                        }
+                    ],
+                    "example": "manager"
                 },
-                "votes": {
-                    "type": "integer"
-                },
-                "votingDeadline": {
+                "voting_deadline": {
                     "type": "string",
-                    "example": "2025-05-10T23:59:00+05:00"
+                    "example": "2026-11-12T09:00:00+05:00"
                 },
-                "votingStart": {
+                "voting_start": {
                     "type": "string",
-                    "example": "2025-05-10T23:59:00+05:00"
+                    "example": "2025-11-12T09:00:00+05:00"
                 }
             }
         },
-        "candidate.CandidateType": {
+        "VoteGolang_internals_domain.CandidateType": {
             "type": "string",
             "enum": [
                 "presidential",
@@ -452,7 +786,97 @@ const docTemplate = `{
                 "Manager"
             ]
         },
-        "candidate.VoteRequest": {
+        "VoteGolang_internals_domain.Petition": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "goal": {
+                    "type": "integer"
+                },
+                "photo": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "voting_deadline": {
+                    "type": "string",
+                    "example": "2025-05-10T23:59:00+05:00"
+                }
+            }
+        },
+        "VoteGolang_internals_domain.PetitionVoteRequest": {
+            "type": "object",
+            "properties": {
+                "petition_id": {
+                    "type": "integer"
+                },
+                "vote_type": {
+                    "description": "Enum values: favor, against",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/VoteGolang_internals_domain.VoteType"
+                        }
+                    ],
+                    "example": "favor, against"
+                }
+            }
+        },
+        "VoteGolang_internals_domain.RefreshRequest": {
+            "type": "object",
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "VoteGolang_internals_domain.TokenResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "VoteGolang_internals_domain.User": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "example": "59, Tole Bi St, Almaty"
+                },
+                "birthDate": {
+                    "type": "string",
+                    "example": "2004-07-16T00:00:00Z"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "zhaslanbeksultan@gmail.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "$Password123"
+                },
+                "roleID": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "userFullName": {
+                    "type": "string",
+                    "example": "Beksultan Zhaslan"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "beks"
+                }
+            }
+        },
+        "VoteGolang_internals_domain.VoteRequest": {
             "type": "object",
             "properties": {
                 "candidate_id": {
@@ -469,45 +893,7 @@ const docTemplate = `{
                 }
             }
         },
-        "petition.Petition": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "goal": {
-                    "type": "integer"
-                },
-                "photo": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "votingDeadline": {
-                    "type": "string",
-                    "example": "2025-05-10T23:59:00+05:00"
-                }
-            }
-        },
-        "petition.PetitionVoteRequest": {
-            "type": "object",
-            "properties": {
-                "petition_id": {
-                    "type": "integer"
-                },
-                "vote_type": {
-                    "description": "Enum values: favor, against",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/petition.VoteType"
-                        }
-                    ],
-                    "example": "favor, against"
-                }
-            }
-        },
-        "petition.VoteType": {
+        "VoteGolang_internals_domain.VoteType": {
             "type": "string",
             "enum": [
                 "favor",
@@ -517,6 +903,49 @@ const docTemplate = `{
                 "Favor",
                 "Against"
             ]
+        },
+        "internals_controller_candidate_routes.IDRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "internals_controller_candidate_routes.candidateTypeRequest": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "example": "manager"
+                }
+            }
+        },
+        "internals_controller_candidate_routes.candidatesByPageRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "type": {
+                    "type": "string",
+                    "example": "manager"
+                }
+            }
+        },
+        "internals_controller_candidate_routes.searchRequest": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string"
+                }
+            }
         }
     },
     "securityDefinitions": {

@@ -42,7 +42,7 @@ func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager 
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param petition body petition.Petition true "Petition Data"
+// @Param petition body petition_data2.Petition true "Petition Data"
 // @Success 200 {string} string "Petition created"
 // @Router /petition/create [post]
 func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request) {
@@ -90,8 +90,9 @@ func (h *PetitionHandler) CreatePetition(w http.ResponseWriter, r *http.Request)
 // @Tags Petition
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} petition.Petition
+// @Success 200 {array} petition_data2.Petition
 // @Router /petition/all [get]
+// @Param Authorization header string true "Bearer access token" example("Bearer eyJhbGciOi...")
 func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request) {
 
 	petitions, err := h.usecase.GetAllPetitions()
@@ -106,7 +107,7 @@ func (h *PetitionHandler) GetAllPetitions(w http.ResponseWriter, r *http.Request
 // @Tags Petition
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} petition.Petition
+// @Success 200 {array} petition_data2.Petition
 // @Router /petition/page/ [get]
 func (h *PetitionHandler) GetPetitionsByPage(w http.ResponseWriter, r *http.Request) {
 	var req PaginationRequest
@@ -159,7 +160,7 @@ func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param petitionVote body petition.PetitionVoteRequest true "Petition petition data"
+// @Param petitionVote body petition_data2.PetitionVoteRequest true "Petition petition data"
 // @Success 200 {string} string "Voted on petition"
 // @Failure 400 {string} string "Bad Request"
 // @Router /petition/vote [post]

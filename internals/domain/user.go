@@ -9,19 +9,19 @@ import (
 
 // User represents a registered user in the system.
 type User struct {
-	ID            uint    `gorm:"primaryKey;autoIncrement"`
-	Username      string  `gorm:"type:varchar(100);not null;unique"`
-	Email         string  `gorm:"type:varchar(100);not null;unique"`
-	EmailVerified bool    `gorm:"default:false"`
-	UserFullName  *string `gorm:"type:varchar(110)"`
-	Password      string  `gorm:"type:varchar(255);not null"`
-	BirthDate     *time.Time
-	Address       *string        `gorm:"type:text"`
+	ID            uint           `gorm:"primaryKey;autoIncrement" swaggerignore:"true"`
+	Username      string         `gorm:"type:varchar(100);not null;unique" example:"beks"`
+	Email         string         `gorm:"type:varchar(100);not null;unique" example:"zhaslanbeksultan@gmail.com"`
+	EmailVerified bool           `gorm:"default:false" swaggerignore:"true"`
+	UserFullName  *string        `gorm:"type:varchar(110)" example:"Beksultan Zhaslan"`
+	Password      string         `gorm:"type:varchar(255);not null" example:"$Password123"`
+	BirthDate     *time.Time     `example:"2004-07-16T00:00:00Z"`
+	Address       *string        `gorm:"type:text" example:"59, Tole Bi St, Almaty"`
 	DeletedAt     gorm.DeletedAt `json:"-" swaggerignore:"true"`
 	CreatedAt     time.Time      `gorm:"autoCreateTime" swaggerignore:"true"`
-	UpdatedAt     time.Time      `gorm:"autoUpdateTime"`
-	RoleID        uint           `gorm:"not null"`
-	Role          Role           `gorm:"foreignKey:RoleID"`
+	UpdatedAt     time.Time      `gorm:"autoUpdateTime" swaggerignore:"true"`
+	RoleID        uint           `gorm:"not null" example:"2"`
+	Role          Role           `gorm:"foreignKey:RoleID" swaggerignore:"true"`
 }
 
 // UserRepository handles database operations related to users.

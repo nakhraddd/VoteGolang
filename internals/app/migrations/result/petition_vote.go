@@ -5,7 +5,7 @@ package result
 // -----------------------------------
 // CREATE TABLE petition_votes (
 //   id uint PRIMARY KEY AUTO_INCREMENT,
-//   user_id varchar(255) NOT NULL,
+//   user_id uint NOT NULL,
 //   petition_id uint,
 //   vote_type varchar(255) NOT NULL,
 //   deleted_at time,

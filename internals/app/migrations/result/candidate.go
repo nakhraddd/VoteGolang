@@ -13,6 +13,8 @@ package result
 //   region varchar(255),
 //   votes int DEFAULT '0',
 //   type varchar(255) NOT NULL,
+//   voting_start datetime,
+//   voting_deadline datetime,
 //   deleted_at time,
 //   created_at time,
 //   updated_at time,
