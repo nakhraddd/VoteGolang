@@ -36,25 +36,35 @@ type App struct {
 	Blockchain *blockchain.Blockchain
 }
 
-func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, *redis.Client, *elasticsearch.Client, error) {
-	config := conf.LoadConfig()
-	db, err := connect.ConnectDB(config)
+func NewApp(kafkaLogger *logging.KafkaLogger) (*App, *auth_usecase.AuthUseCase, domain.TokenManager, *redis.Client, *elasticsearch.Client, error) {
+	kafkaLogger.Log("INFO", "Initializing application components...")
 
+	config := conf.LoadConfig(kafkaLogger)
+	kafkaLogger.Log("INFO", "Configuration loaded successfully")
+
+	db, err := connect.ConnectDB(config, kafkaLogger)
 	if err != nil {
+		kafkaLogger.Log("ERROR", fmt.Sprintf("Database connection failed: %v", err))
 		return nil, nil, nil, nil, nil, err
 	}
+	kafkaLogger.Log("INFO", "Connected to MySQL database successfully")
 
 	err = migrations.MigrateAllTables(db)
 	if err != nil {
+		kafkaLogger.Log("ERROR", fmt.Sprintf("Database migration failed: %v", err))
 		return nil, nil, nil, nil, nil, err
 	}
+	kafkaLogger.Log("INFO", "Database migrations applied successfully")
 
 	esClient, err := connect.ConnectElasticsearch()
 	if err != nil {
-		log.Printf("⚠️ Failed to connect Elasticsearch: %v", err)
+		kafkaLogger.Log("ERROR", fmt.Sprintf("Failed to connect to Elasticsearch: %v", err))
+	} else {
+		kafkaLogger.Log("INFO", "Connected to Elasticsearch successfully")
 	}
 
-	bc := blockchain.NewBlockchain(2)
+	bc := blockchain.NewBlockchain(2, kafkaLogger)
+	kafkaLogger.Log("INFO", "Blockchain initialized")
 
 	app := &App{
 		Config:     config,
@@ -74,9 +84,11 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, *redis.Clie
 	ctx := context.Background()
 	status, err := rdb.Ping(ctx).Result()
 	if err != nil {
+		kafkaLogger.Log("ERROR", fmt.Sprintf("Redis connection failed: %v", err))
 		log.Fatalln("Redis connection was refused:", err)
+	} else {
+		kafkaLogger.Log("INFO", fmt.Sprintf("Redis connected successfully: %s", status))
 	}
-	log.Println("Redis ping:", status)
 
 	roleRepo := candidate_repo.NewRoleRepository(db)
 
@@ -86,12 +98,14 @@ func NewApp() (*App, *auth_usecase.AuthUseCase, domain.TokenManager, *redis.Clie
 
 	// start clean up of unverified users
 	email.StartUnverifiedCleanupJob(userRepo)
+	kafkaLogger.Log("INFO", "Started background cleanup job for unverified users")
 
+	kafkaLogger.Log("INFO", "All core services initialized successfully")
 	return app, authUseCase, tokenManager, rdb, esClient, nil
 }
 
 func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.TokenManager, kafkaLogger *logging.KafkaLogger, rdb *redis.Client, esClient *elasticsearch.Client) {
-	log.Println("Starting server on port 8080...")
+	kafkaLogger.Log("INFO", "Starting HTTP server on port 8080...")
 
 	mux := http.NewServeMux()
 
@@ -109,6 +123,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	//auth
 	authHandler := login_routes.NewAuthHandler(authUseCase, tokenManager, kafkaLogger)
 	login_routes.AuthorizationRoutes(mux, authHandler, tokenManager, kafkaLogger)
+	kafkaLogger.Log("INFO", "Authentication routes registered")
 
 	// create rbac repo once
 	rbacRepo := candidate_repo.NewRBACRepository(a.DB)
@@ -128,6 +143,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 		kafkaLogger,
 	)
 	candidate_routes.RegisterCandidateRoutes(mux, candidateHandler, tokenManager, rbacRepo)
+	kafkaLogger.Log("INFO", "Candidate routes registered")
 
 	//Petitions
 	petitionsHandler := petition_routes.NewPetitionHandler(
@@ -141,10 +157,12 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 		kafkaLogger,
 	)
 	petition_routes.RegisterPetitionRoutes(mux, petitionsHandler, tokenManager, rbacRepo)
+	kafkaLogger.Log("INFO", "Petition routes registered")
 
 	// Blockchain
 	blockchainHandler := blockchain_routes.NewBlockchainHandler(a.Blockchain)
 	blockchain_routes.RegisterBlockchainRoutes(mux, blockchainHandler)
+	kafkaLogger.Log("INFO", "Blockchain routes registered")
 
 	// fallback for unknown routes
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -157,6 +175,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	// Wrap mux with logging middleware
 	err := http.ListenAndServe(":8080", logMiddleware(mux))
 	if err != nil {
+		kafkaLogger.Log("ERROR", fmt.Sprintf("Server failed to start: %v", err))
 		log.Fatalf("Error starting server: %v", err)
 	}
 

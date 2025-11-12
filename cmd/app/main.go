@@ -3,6 +3,7 @@ package main
 import (
 	"VoteGolang/internals/app"
 	"VoteGolang/internals/app/logging"
+	"fmt"
 	"log"
 	"os"
 )
@@ -30,8 +31,13 @@ func main() {
 	kafkaLogger := logging.NewKafkaLogger(kafkaBroker, "app-logs", "vote-golang-api")
 	defer kafkaLogger.Close()
 
-	appInstance, authUseCase, tokenManager, rdb, esClient, err := app.NewApp()
+	if err := kafkaLogger.Log("INFO", fmt.Sprintf("Kafka logger initialized with broker %s", kafkaBroker)); err != nil {
+		log.Printf("Failed to send log to Kafka: %v", err)
+	}
+
+	appInstance, authUseCase, tokenManager, rdb, esClient, err := app.NewApp(kafkaLogger)
 	if err != nil {
+		kafkaLogger.Log("ERROR", fmt.Sprintf("Failed to initialize application: %v", err))
 		log.Fatalf("Error initializing app: %v", err)
 	}
 
@@ -42,4 +48,8 @@ func main() {
 	}
 
 	appInstance.Run(authUseCase, tokenManager, kafkaLogger, rdb, esClient)
+
+	if err := kafkaLogger.Log("INFO", "Application stopped gracefully"); err != nil {
+		log.Printf("Failed to send log to Kafka: %v", err)
+	}
 }

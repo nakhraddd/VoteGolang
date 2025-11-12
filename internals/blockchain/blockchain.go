@@ -1,10 +1,10 @@
 package blockchain
 
 import (
+	"VoteGolang/internals/app/logging"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -29,12 +29,13 @@ type Block struct {
 
 // Blockchain is a series of validated Blocks.
 type Blockchain struct {
-	Chain      []*Block `json:"chain"`
-	Difficulty int      `json:"difficulty"`
+	Chain       []*Block             `json:"chain"`
+	Difficulty  int                  `json:"difficulty"`
+	KafkaLogger *logging.KafkaLogger `json:"-"`
 }
 
 // NewBlockchain creates a new Blockchain with a genesis Block.
-func NewBlockchain(difficulty int) *Blockchain {
+func NewBlockchain(difficulty int, kafkaLogger *logging.KafkaLogger) *Blockchain {
 	genesisBlock := &Block{
 		Index:       0,
 		Timestamp:   time.Now(),
@@ -43,6 +44,8 @@ func NewBlockchain(difficulty int) *Blockchain {
 		Difficulty:  difficulty,
 	}
 	genesisBlock.Hash = genesisBlock.calculateHash()
+
+	kafkaLogger.Log("INFO", fmt.Sprintf("Genesis block created with hash %s", genesisBlock.Hash))
 
 	return &Blockchain{
 		Chain:      []*Block{genesisBlock},
@@ -84,7 +87,7 @@ func (b *Block) calculateHash() string {
 //	fmt.Printf("Block mined: %s\n", b.Hash)
 //}
 
-func (b *Block) MineBlock(difficulty int) {
+func (b *Block) MineBlock(difficulty int, kafkaLogger *logging.KafkaLogger) {
 	target := ""
 	for i := 0; i < difficulty; i++ {
 		target += "0"
@@ -96,7 +99,7 @@ func (b *Block) MineBlock(difficulty int) {
 		}
 		b.Nonce++
 	}
-	log.Printf("✅ Block mined: %s\n", b.Hash)
+	kafkaLogger.Log("INFO", fmt.Sprintf("⛏️ Starting mining for block %d with difficulty %d", b.Index, difficulty))
 }
 
 // AddBlock creates a new block, mines it, and then adds it to the blockchain.
@@ -110,11 +113,17 @@ func (bc *Blockchain) AddBlock(transaction Transaction) {
 		Difficulty:  bc.Difficulty,
 		Nonce:       0, // Start nonce from 0 for mining
 	}
-	newBlock.MineBlock(bc.Difficulty) // Perform proof-of-work
+
+	bc.KafkaLogger.Log("INFO", fmt.Sprintf("Creating new block %d with transaction type '%s'", newBlock.Index, transaction.Type))
+
+	newBlock.MineBlock(bc.Difficulty, bc.KafkaLogger) // Perform proof-of-work
 	bc.Chain = append(bc.Chain, newBlock)
+
+	bc.KafkaLogger.Log("INFO", fmt.Sprintf("Block %d added to chain with hash %s", newBlock.Index, newBlock.Hash))
 }
 
 // GetChain returns the full blockchain.
 func (bc *Blockchain) GetChain() []*Block {
+	bc.KafkaLogger.Log("DEBUG", fmt.Sprintf("Blockchain retrieved with %d blocks", len(bc.Chain)))
 	return bc.Chain
 }

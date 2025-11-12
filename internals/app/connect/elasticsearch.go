@@ -28,6 +28,6 @@ func ConnectElasticsearch() (*elasticsearch.Client, error) {
 		return nil, fmt.Errorf("elasticsearch connection failed: %s", res.String())
 	}
 
-	log.Println("✅ Connected to Elasticsearch")
+	log.Println("Connected to Elasticsearch")
 	return es, nil
 }
