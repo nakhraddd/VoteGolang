@@ -28,12 +28,8 @@ func main() {
 		kafkaBroker = "kafka:9092" // fallback
 	}
 
-	kafkaLogger := logging.NewKafkaLogger(kafkaBroker, "app-logs", "vote-golang-api")
+	kafkaLogger := logging.NewKafkaLogger(kafkaBroker, "app-logs")
 	defer kafkaLogger.Close()
-
-	if err := kafkaLogger.Log("INFO", fmt.Sprintf("Kafka logger initialized with broker %s", kafkaBroker)); err != nil {
-		log.Printf("Failed to send log to Kafka: %v", err)
-	}
 
 	appInstance, authUseCase, tokenManager, rdb, esClient, err := app.NewApp(kafkaLogger)
 	if err != nil {
@@ -43,13 +39,5 @@ func main() {
 
 	defer rdb.Close()
 
-	if err := kafkaLogger.Log("INFO", "App started"); err != nil {
-		log.Printf("Failed to send log to Kafka: %v", err)
-	}
-
 	appInstance.Run(authUseCase, tokenManager, kafkaLogger, rdb, esClient)
-
-	if err := kafkaLogger.Log("INFO", "Application stopped gracefully"); err != nil {
-		log.Printf("Failed to send log to Kafka: %v", err)
-	}
 }

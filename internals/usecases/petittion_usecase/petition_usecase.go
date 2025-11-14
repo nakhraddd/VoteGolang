@@ -183,19 +183,34 @@ func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType petition_
 		}
 
 		// Add to blockchain
-		if uc.blockchain != nil {
-			transaction := blockchain.Transaction{
-				Type: "PETITION_VOTE",
-				Payload: map[string]interface{}{
-					"petition_id": petitionID,
-					"user_id":     userID,
-					"vote_type":   voteType,
-				},
-				Description: fmt.Sprintf("User %d voted on petition %d", userID, petitionID),
-				Timestamp:   time.Now(),
+		go func() {
+			if uc.blockchain != nil {
+				transaction := blockchain.Transaction{
+					Type: "PETITION_VOTE",
+					Payload: map[string]interface{}{
+						"petition_id": petitionID,
+						"user_id":     userID,
+						"vote_type":   voteType,
+					},
+					Description: fmt.Sprintf("User %d voted on petition %d", userID, petitionID),
+					Timestamp:   time.Now(),
+				}
+				uc.blockchain.AddBlock(transaction)
 			}
-			uc.blockchain.AddBlock(transaction)
-		}
+		}()
+		//if uc.blockchain != nil {
+		//	transaction := blockchain.Transaction{
+		//		Type: "PETITION_VOTE",
+		//		Payload: map[string]interface{}{
+		//			"petition_id": petitionID,
+		//			"user_id":     userID,
+		//			"vote_type":   voteType,
+		//		},
+		//		Description: fmt.Sprintf("User %d voted on petition %d", userID, petitionID),
+		//		Timestamp:   time.Now(),
+		//	}
+		//	uc.blockchain.AddBlock(transaction)
+		//}
 
 		// Invalidate cache
 		ctx := context.Background()
