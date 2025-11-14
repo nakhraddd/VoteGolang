@@ -147,14 +147,7 @@ func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType ca
 		return errors.New("invalid candidate type")
 	}
 
-	voted, err := uc.VoteRepo.HasVoted(userID, string(candidateType))
-	if err != nil {
-		return err
-	}
-	if voted {
-		return errors.New("already voted for this category")
-	}
-
+	// Validate candidate exists and matches criteria BEFORE starting transaction
 	candidate, err := uc.CandidateRepo.GetByID(candidateID)
 	if err != nil {
 		return err
@@ -166,30 +159,30 @@ func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType ca
 	if time.Now().Before(candidate.VotingStart) {
 		return errors.New("voting has not started for this candidate")
 	}
-
 	if time.Now().After(candidate.VotingDeadline) {
 		return errors.New("voting period has ended for this candidate")
 	}
 
-	if err := uc.CandidateRepo.IncrementVote(candidateID); err != nil {
-		return err
-	}
+	// Use transaction to ensure atomicity
+	return uc.VoteRepo.VoteWithTransaction(candidateID, userID, string(candidateType), func() error {
+		// Increment vote count
+		if err := uc.CandidateRepo.IncrementVote(candidateID); err != nil {
+			return err
+		}
 
-	if err := uc.VoteRepo.SaveVote(candidateID, userID, string(candidateType)); err != nil {
-		return err
-	}
+		// Add to blockchain
+		transaction := blockchain.Transaction{
+			Type: "VOTE_CAST",
+			Payload: map[string]interface{}{
+				"candidate_id":   candidateID,
+				"user_id":        userID,
+				"candidate_type": candidateType,
+			},
+		}
+		uc.Blockchain.AddBlock(transaction)
 
-	transaction := blockchain.Transaction{
-		Type: "VOTE_CAST",
-		Payload: map[string]interface{}{
-			"candidate_id":   candidateID,
-			"user_id":        userID,
-			"candidate_type": candidateType,
-		},
-	}
-	uc.Blockchain.AddBlock(transaction)
-
-	return nil
+		return nil
+	})
 }
 
 func (uc *CandidateUseCase) DeleteCandidate(id uint) error {

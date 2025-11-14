@@ -261,6 +261,11 @@ func (h *CandidateHandler) Vote(w http.ResponseWriter, r *http.Request) {
 
 	err = h.UseCase.Vote(req.CandidateID, userID, candidate_data2.CandidateType(req.CandidateType))
 	if err != nil {
+		if err.Error() == "already voted for this category" {
+			h.KafkaLogger.Log("INFO", fmt.Sprintf("Duplicate vote attempt: user %d for candidate %d", userID, req.CandidateID))
+			response.JSON(w, http.StatusOK, true, "Vote already recorded", nil)
+			return
+		}
 		response.JSON(w, http.StatusBadRequest, false, "Failed to vote: "+err.Error(), nil)
 		return
 	}

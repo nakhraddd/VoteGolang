@@ -9,7 +9,7 @@ import (
 // Vote represents a petition on a candidate.
 type Vote struct {
 	ID            uint           `gorm:"primaryKey;autoIncrement" swaggerignore:"true"`
-	UserID        uint           `gorm:"not null" swaggerignore:"true"`
+	UserID        uint           `gorm:"not null;uniqueIndex:idx_user_candidate_type" swaggerignore:"true"`
 	CandidateID   uint           `gorm:"not null"`
 	CandidateType CandidateType  `json:"candidate_type" gorm:"type:varchar(50);not null"`
 	DeletedAt     gorm.DeletedAt `json:"-" swaggerignore:"true"`
@@ -28,6 +28,7 @@ type VoteRequest struct {
 type VoteRepository interface {
 	HasVoted(userID uint, voteType string) (bool, error)
 	SaveVote(candidateID uint, userID uint, voteType string) error
+	VoteWithTransaction(candidateID uint, userID uint, candidateType string, afterSave func() error) error
 }
 
 // PetitionVoteRepository manages voting data for petitions.

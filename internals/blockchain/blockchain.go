@@ -48,8 +48,9 @@ func NewBlockchain(difficulty int, kafkaLogger *logging.KafkaLogger) *Blockchain
 	kafkaLogger.Log("INFO", fmt.Sprintf("Genesis block created with hash %s", genesisBlock.Hash))
 
 	return &Blockchain{
-		Chain:      []*Block{genesisBlock},
-		Difficulty: difficulty,
+		Chain:       []*Block{genesisBlock},
+		Difficulty:  difficulty,
+		KafkaLogger: kafkaLogger,
 	}
 }
 
