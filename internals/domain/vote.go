@@ -35,4 +35,5 @@ type VoteRepository interface {
 type PetitionVoteRepository interface {
 	CreateVote(vote *PetitionVote) error
 	HasUserVoted(userID uint, petitionID uint) (bool, error)
+	VoteWithTransaction(userID uint, petitionID uint, voteType VoteType, afterSave func() error) error
 }

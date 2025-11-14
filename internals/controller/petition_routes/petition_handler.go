@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -186,6 +185,7 @@ func (h *PetitionHandler) GetPetitionByID(w http.ResponseWriter, r *http.Request
 // @Router /petition/vote [post]
 func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	h.KafkaLogger.Log("INFO", fmt.Sprintf("Petition vote attempt from %s", r.RemoteAddr))
+
 	token, err := http2.ExtractTokenFromRequest(r)
 	if err != nil {
 		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
@@ -197,7 +197,7 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return h.TokenManager.Secret, nil
 	})
 	if err != nil {
-		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, missing tokens: "+err.Error(), nil)
+		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized, invalid tokens: "+err.Error(), nil)
 		return
 	}
 
@@ -213,30 +213,34 @@ func (h *PetitionHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	petition, err := h.usecase.GetPetitionByID(voteReq.PetitionID)
-	if err != nil {
-		response.JSON(w, http.StatusNotFound, false, "Petition not found: "+err.Error(), nil)
-		return
-	}
-
-	if time.Now().After(petition.VotingDeadline) {
-		response.JSON(w, http.StatusForbidden, false, "Voting period has ended", nil)
-		return
-	}
-
-	totalVotes := petition.VotesInFavor + petition.VotesAgainst
-	if totalVotes >= petition.Goal {
-		response.JSON(w, http.StatusForbidden, false, "Vote goal has been reached", nil)
-		return
-	}
-
 	err = h.usecase.Vote(userID, voteReq.PetitionID, voteReq.VoteType)
 	if err != nil {
-		response.JSON(w, http.StatusInternalServerError, false, "Failed to vote: "+err.Error(), nil)
+		// Check if it's an "already voted" error - return 200 for idempotency
+		if err.Error() == "user has already voted" {
+			h.KafkaLogger.Log("INFO", fmt.Sprintf("Duplicate petition vote attempt: user %d for petition %d", userID, voteReq.PetitionID))
+
+			// Fetch petition to return current state
+			petition, fetchErr := h.usecase.GetPetitionByID(voteReq.PetitionID)
+			if fetchErr != nil {
+				response.JSON(w, http.StatusOK, true, "Vote already recorded", nil)
+				return
+			}
+			response.JSON(w, http.StatusOK, true, "Vote already recorded", petition)
+			return
+		}
+		response.JSON(w, http.StatusBadRequest, false, "Failed to vote: "+err.Error(), nil)
 		return
 	}
 
-	response.JSON(w, http.StatusOK, true, "OK", petition)
+	// Fetch updated petition
+	petition, err := h.usecase.GetPetitionByID(voteReq.PetitionID)
+	if err != nil {
+		response.JSON(w, http.StatusOK, true, "Vote recorded successfully", nil)
+		return
+	}
+
+	h.KafkaLogger.Log("INFO", fmt.Sprintf("Petition vote success: user %d voted on petition %d", userID, voteReq.PetitionID))
+	response.JSON(w, http.StatusOK, true, "Vote recorded successfully", petition)
 }
 
 // @Summary Delete a petition

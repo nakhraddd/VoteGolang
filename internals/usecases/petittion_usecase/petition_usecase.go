@@ -146,14 +146,7 @@ func (uc *petitionUseCase) GetPetitionByID(id uint) (*petition_data2.Petition, e
 }
 
 func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType petition_data2.VoteType) error {
-	voted, err := uc.petitionVoteRepo.HasUserVoted(userID, petitionID)
-	if err != nil {
-		return err
-	}
-	if voted {
-		return fmt.Errorf("user has already voted")
-	}
-
+	// Validate petition exists and meets criteria BEFORE transaction
 	petition, err := uc.petitionRepo.GetByID(petitionID)
 	if err != nil {
 		return err
@@ -172,44 +165,58 @@ func (uc *petitionUseCase) Vote(userID uint, petitionID uint, voteType petition_
 		return fmt.Errorf("petition goal has been reached")
 	}
 
-	vote := &petition_data2.PetitionVote{
-		UserID:     userID,
-		PetitionID: petitionID,
-		VoteType:   voteType,
-	}
+	// Use transaction with row locking for idempotency
+	return uc.petitionVoteRepo.VoteWithTransaction(userID, petitionID, voteType, func() error {
+		// Update vote count based on vote type
+		var dbErr error
+		switch voteType {
+		case petition_data2.Favor:
+			dbErr = uc.petitionRepo.VoteInFavor(petitionID)
+		case petition_data2.Against:
+			dbErr = uc.petitionRepo.VoteAgainst(petitionID)
+		default:
+			return fmt.Errorf("invalid vote type")
+		}
 
-	err = uc.petitionVoteRepo.CreateVote(vote)
-	if err != nil {
-		return err
-	}
+		if dbErr != nil {
+			return dbErr
+		}
 
-	var dbErr error
-	switch voteType {
-	case petition_data2.Favor:
-		dbErr = uc.petitionRepo.VoteInFavor(petitionID)
-	case petition_data2.Against:
-		dbErr = uc.petitionRepo.VoteAgainst(petitionID)
-	default:
-		return fmt.Errorf("invalid vote type")
-	}
+		// Add to blockchain
+		if uc.blockchain != nil {
+			transaction := blockchain.Transaction{
+				Type: "PETITION_VOTE",
+				Payload: map[string]interface{}{
+					"petition_id": petitionID,
+					"user_id":     userID,
+					"vote_type":   voteType,
+				},
+				Description: fmt.Sprintf("User %d voted on petition %d", userID, petitionID),
+				Timestamp:   time.Now(),
+			}
+			uc.blockchain.AddBlock(transaction)
+		}
 
-	if dbErr != nil {
-		return dbErr
-	}
+		// Invalidate cache
+		ctx := context.Background()
+		cacheKey := fmt.Sprintf("petition:%d", petitionID)
+		uc.redis.Del(ctx, cacheKey)
 
-	transaction := blockchain.Transaction{
-		Type: "PETITION_VOTE",
-		Payload: map[string]interface{}{
-			"petition_id": petitionID,
-			"user_id":     userID,
-			"vote_type":   voteType,
-		},
-		Description: fmt.Sprintf("User %d voted on petition %d", userID, petitionID),
-		Timestamp:   time.Now(),
-	}
-	uc.blockchain.AddBlock(transaction)
+		// Invalidate paginated cache
+		var cursor uint64
+		for {
+			keys, nextCursor, _ := uc.redis.Scan(ctx, cursor, "petitions*", 100).Result()
+			for _, k := range keys {
+				uc.redis.Del(ctx, k)
+			}
+			if nextCursor == 0 {
+				break
+			}
+			cursor = nextCursor
+		}
 
-	return nil
+		return nil
+	})
 }
 
 func (uc *petitionUseCase) DeletePetition(id uint) error {

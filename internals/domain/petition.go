@@ -33,9 +33,9 @@ type PetitionRepository interface {
 }
 
 type PetitionVote struct {
-	ID         uint `gorm:"primaryKey;autoIncrement"`
-	UserID     uint `gorm:"not null" swaggerignore:"true"`
-	PetitionID uint
+	ID         uint           `gorm:"primaryKey;autoIncrement"`
+	UserID     uint           `gorm:"not null;uniqueIndex:idx_user_petition" swaggerignore:"true"`
+	PetitionID uint           `gorm:"not null;uniqueIndex:idx_user_petition"`
 	VoteType   VoteType       `gorm:"type:varchar(255);not null"`
 	DeletedAt  gorm.DeletedAt `json:"-" swaggerignore:"true"`
 	CreatedAt  time.Time      `gorm:"autoCreateTime"`
