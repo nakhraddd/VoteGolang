@@ -22,7 +22,7 @@ import (
 
 // BnbService implements the BlockchainService interface using an EVM-compatible JSON-RPC client
 type BnbService struct {
-	config          *conf.BnbConfig // Assumes a new config struct for BNB
+	config          *conf.BnbConfig
 	client          *ethclient.Client
 	ownerAddress    common.Address
 	privateKey      *ecdsa.PrivateKey
@@ -37,13 +37,13 @@ func NewBnbService(config *conf.BnbConfig) (BlockchainService, error) {
 		return nil, fmt.Errorf("BNB config (NodeURL, PrivateKey, ContractAddress, ChainID) is incomplete")
 	}
 
-	// 1. Connect to the EVM node
+	// Connect to the EVM node
 	client, err := ethclient.Dial(config.NodeURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to BNB node: %w", err)
 	}
 
-	// 2. Load private key and derive owner address
+	// Load private key and derive owner address
 	privateKeyHex := strings.TrimPrefix(strings.ToLower(config.PrivateKey), "0x")
 	privKey, err := crypto.HexToECDSA(privateKeyHex)
 	if err != nil {
@@ -57,10 +57,10 @@ func NewBnbService(config *conf.BnbConfig) (BlockchainService, error) {
 	}
 	ownerAddress := crypto.PubkeyToAddress(*pubKeyECDSA)
 
-	// 3. Parse Contract Address
+	// Parse Contract Address
 	contractAddress := common.HexToAddress(config.ContractAddress)
 
-	// 4. Parse Contract ABI (same as before)
+	// Parse Contract ABI (same as before)
 	const contractABIJSON = `[{"name":"logCandidate","type":"function","inputs":[{"name":"candidateId","type":"uint256"},{"name":"name","type":"string"},{"name":"candidateType","type":"string"}]}, {"name":"logCandidateVote","type":"function","inputs":[{"name":"userId","type":"uint256"},{"name":"candidateId","type":"uint256"},{"name":"candidateType","type":"string"}]}, {"name":"logPetition","type":"function","inputs":[{"name":"petitionId","type":"uint256"},{"name":"userId","type":"uint256"},{"name":"title","type":"string"}]}, {"name":"logPetitionVote","type":"function","inputs":[{"name":"userId","type":"uint256"},{"name":"petitionId","type":"uint256"},{"name":"voteType","type":"string"}]}]`
 
 	parsedABI, err := abi.JSON(strings.NewReader(contractABIJSON))
@@ -84,8 +84,6 @@ func NewBnbService(config *conf.BnbConfig) (BlockchainService, error) {
 		chainID:         chainID,
 	}, nil
 }
-
-// --- Interface Implementation ---
 
 func (s *BnbService) LogCandidateCreation(c *domain.Candidate) (*TransactionLog, error) {
 	const methodSignature = "logCandidate(uint256,string,string)"
@@ -123,32 +121,30 @@ func (s *BnbService) GetServiceInfo() (map[string]interface{}, error) {
 	}, nil
 }
 
-// --- BNB/EVM Helper Function ---
-
 // sendEVMTx builds, signs, and broadcasts a transaction to an EVM chain
 func (s *BnbService) sendEVMTx(functionSignature string, params ...interface{}) (*TransactionLog, error) {
 	log.Printf("[BNB RPC] Calling '%s' with params: %v", functionSignature, params)
 	methodName := functionSignature[:strings.Index(functionSignature, "(")]
 
-	// 1. Pack transaction data
+	//Pack transaction data
 	packedData, err := s.contractABI.Pack(methodName, params...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack arguments for method %s: %w", methodName, err)
 	}
 
-	// 2. Get nonce
+	// Get nonce
 	nonce, err := s.client.PendingNonceAt(context.Background(), s.ownerAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pending nonce: %w", err)
 	}
 
-	// 3. Get gas price
+	// Get gas price
 	gasPrice, err := s.client.SuggestGasPrice(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to suggest gas price: %w", err)
 	}
 
-	// 4. Estimate gas limit
+	// Estimate gas limit
 	msg := ethereum.CallMsg{
 		From: s.ownerAddress,
 		To:   &s.contractAddress,
@@ -159,16 +155,16 @@ func (s *BnbService) sendEVMTx(functionSignature string, params ...interface{}) 
 		return nil, fmt.Errorf("failed to estimate gas: %w. Check contract and params", err)
 	}
 
-	// 5. Create the transaction object (value is 0)
+	// Create the transaction object (value is 0)
 	tx := types.NewTransaction(nonce, s.contractAddress, big.NewInt(0), gasLimit, gasPrice, packedData)
 
-	// 6. Sign the transaction
+	// Sign the transaction
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(s.chainID), s.privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign transaction: %w", err)
 	}
 
-	// 7. Send the transaction
+	// Send the transaction
 	err = s.client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send transaction: %w", err)
@@ -180,7 +176,7 @@ func (s *BnbService) sendEVMTx(functionSignature string, params ...interface{}) 
 		s.contractAddress.Hex(),
 		functionSignature)
 
-	// 8. Wait for the transaction to be mined
+	// Wait for the transaction to be mined
 	log.Printf("[BNB RPC] Waiting for TX %s to be mined...", signedTx.Hash().Hex())
 	receipt, err := bind.WaitMined(context.Background(), s.client, signedTx)
 	if err != nil {
@@ -192,8 +188,7 @@ func (s *BnbService) sendEVMTx(functionSignature string, params ...interface{}) 
 		return nil, fmt.Errorf("transaction %s reverted by EVM", signedTx.Hash().Hex())
 	}
 
-	// 9. Calculate fee (Fee = GasUsed * EffectiveGasPrice)
-	// Note: We use Wei, not SUN.
+	// Calculate fee (Fee = GasUsed * EffectiveGasPrice)
 	feePaid := new(big.Int).Mul(receipt.EffectiveGasPrice, big.NewInt(int64(receipt.GasUsed)))
 
 	log.Printf("[BNB RPC] TX %s confirmed. Block: %d | Fee Paid: %s Wei (%.18f BNB)",
@@ -207,6 +202,6 @@ func (s *BnbService) sendEVMTx(functionSignature string, params ...interface{}) 
 		Timestamp:     time.Now(),
 		ActionType:    functionSignature,
 		Details:       params,
-		FeeWei:        feePaid.Int64(), // Use the updated struct field
+		FeeWei:        feePaid.Int64(),
 	}, nil
 }

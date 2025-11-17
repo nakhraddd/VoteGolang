@@ -37,18 +37,19 @@ func LoadConfig(kafkaLogger *logging.KafkaLogger) *Config {
 		kafkaLogger.Log("INFO", ".env file successfully loaded")
 	}
 
-	return &Config{
-		JWTSecret: getEnv("JWT_SECRET", "defaultsecret"),
-		DBHost:    getEnv("DB_HOST", "localhost"),
-		DBPort:    getEnv("DB_PORT", "3306"),
-		DBUser:    getEnv("DB_USER", "root"),
-		DBPass:    getEnv("DB_PASS", "$F00tba11!"),
-		DBName:    getEnv("DB_NAME", "vote_database"),
+	cfg := &Config{
+		JWTSecret: getEnv("JWT_SECRET", "defaultsecret", kafkaLogger),
+		DBHost:    getEnv("DB_HOST", "localhost", kafkaLogger),
+		DBPort:    getEnv("DB_PORT", "3306", kafkaLogger),
+		DBUser:    getEnv("DB_USER", "root", kafkaLogger),
+		DBPass:    getEnv("DB_PASS", "$F00tba11!", kafkaLogger),
+		DBName:    getEnv("DB_NAME", "vote_database", kafkaLogger),
 		BNB: &BnbConfig{
 			NodeURL:         os.Getenv("BNB_NODE_URL"),
 			PrivateKey:      os.Getenv("BNB_PRIVATE_KEY"),
 			ContractAddress: os.Getenv("BNB_CONTRACT_ADDRESS"),
-			ChainID:         getEnvAsInt64("BNB_CHAIN")},
+			ChainID:         getEnvAsInt64("BNB_CHAIN", 97, kafkaLogger),
+		},
 	}
 
 	kafkaLogger.Log("INFO", fmt.Sprintf("Configuration loaded successfully for DB %s:%s", cfg.DBHost, cfg.DBPort))
@@ -67,16 +68,23 @@ func getEnv(key, fallback string, kafkaLogger *logging.KafkaLogger) string {
 	return value
 }
 
-func getEnvAsInt64(key string) int64 {
+func getEnvAsInt64(key string, fallback int64, kafkaLogger *logging.KafkaLogger) int64 {
 	valueStr, exists := os.LookupEnv(key)
 	if !exists {
-		log.Printf("Warning: Environment variable %s not set, using default value %d", key)
+		msg := fmt.Sprintf("Environment variable %s not set, using default value %d", key, fallback)
+		log.Println(msg)
+		kafkaLogger.Log("WARN", msg)
+		return fallback
 	}
 
 	value, err := strconv.ParseInt(valueStr, 10, 64)
 	if err != nil {
-		log.Printf("Warning: Invalid format for %s (expected integer, got '%s'), using default value %d. Error: %v", key, valueStr, err)
+		msg := fmt.Sprintf("Warning: Invalid format for %s (expected integer, got '%s'), using default value %d. Error: %v", key, valueStr, fallback, err)
+		log.Println(msg)
+		kafkaLogger.Log("WARN", msg)
+		return fallback
 	}
+	kafkaLogger.Log("DEBUG", fmt.Sprintf("Environment variable %s loaded", key))
 
 	return value
 }

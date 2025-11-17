@@ -5,7 +5,7 @@ import (
 	http2 "VoteGolang/internals/controller/http"
 	"VoteGolang/internals/controller/http/response"
 	petition_data2 "VoteGolang/internals/domain"
-	"VoteGolang/internals/usecases/petittion_usecase"
+	"VoteGolang/internals/usecases/petition_usecase"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,7 +14,7 @@ import (
 )
 
 type PetitionHandler struct {
-	usecase      petittion_usecase.PetitionUseCase
+	usecase      petition_usecase.PetitionUseCase
 	TokenManager *petition_data2.JwtToken
 	KafkaLogger  *logging.KafkaLogger
 }
@@ -28,7 +28,7 @@ type IDRequest struct {
 	ID uint `json:"id"`
 }
 
-func NewPetitionHandler(usecase petittion_usecase.PetitionUseCase, tokenManager *petition_data2.JwtToken, kafkaLogger *logging.KafkaLogger) *PetitionHandler {
+func NewPetitionHandler(usecase petition_usecase.PetitionUseCase, tokenManager *petition_data2.JwtToken, kafkaLogger *logging.KafkaLogger) *PetitionHandler {
 	return &PetitionHandler{
 		usecase:      usecase,
 		TokenManager: tokenManager,

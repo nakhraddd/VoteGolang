@@ -17,7 +17,7 @@ import (
 	"VoteGolang/internals/service" // <-- NEW IMPORT
 	"VoteGolang/internals/usecases/auth_usecase"
 	"VoteGolang/internals/usecases/candidate_usecase"
-	"VoteGolang/internals/usecases/petittion_usecase"
+	"VoteGolang/internals/usecases/petition_usecase"
 	"context"
 	"fmt"
 	"log"
@@ -147,7 +147,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 
 	//Petitions
 	petitionsHandler := petition_routes.NewPetitionHandler(
-		petittion_usecase.NewPetitionUseCase(
+		petition_usecase.NewPetitionUseCase(
 			candidate_repo.NewPetitionRepository(a.DB),
 			candidate_repo.NewPetitionVoteRepository(a.DB),
 			a.Blockchain,
