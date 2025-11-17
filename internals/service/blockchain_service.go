@@ -6,16 +6,16 @@ import (
 )
 
 // TransactionLog represents a generic log of an on-chain action.
-// This will include the TRON transaction ID.
 type TransactionLog struct {
 	TransactionID string      `json:"transactionId"`
 	Timestamp     time.Time   `json:"timestamp"`
 	ActionType    string      `json:"actionType"`
 	Details       interface{} `json:"details"`
+	FeeWei        int64       `json:"feeWei"` // <-- RENAMED from FeeSUN
 }
 
 // BlockchainService defines the interface for interacting with a blockchain.
-// This decouples our app from a specific implementation (local vs. TRON).
+// This decouples our app from a specific implementation (local vs. TRON vs. BNB).
 type BlockchainService interface {
 	LogCandidateCreation(candidate *domain.Candidate) (*TransactionLog, error)
 	LogCandidateVote(userID uint, candidateID uint, candidateType domain.CandidateType) (*TransactionLog, error)

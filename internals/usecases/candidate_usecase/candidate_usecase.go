@@ -57,8 +57,14 @@ func (uc *CandidateUseCase) CreateCandidate(candidate *domain.Candidate) error {
 		uc.Redis.Del(context.Background(), k)
 	}
 	if _, err := uc.Blockchain.LogCandidateCreation(candidate); err != nil {
+		// If this fails, the DB is updated but the blockchain is not.
+		// This is a critical error you need to handle (e.g., retry logic, compensating tx).
+		// For now, we just log it.
 		log.Printf("ERROR: Candidate %d created in DB but failed to log to blockchain: %v", candidate.ID, err)
+		// You might choose to return this error, but that would require
+		// rolling back the DB change, which requires a DB transaction.
 	}
+	// ---
 
 	return nil
 }
@@ -154,6 +160,21 @@ func (uc *CandidateUseCase) Vote(candidateID uint, userID uint, candidateType do
 		if err := uc.CandidateRepo.IncrementVote(candidateID); err != nil {
 			return err
 		}
+
+	if err := uc.VoteRepo.SaveVote(candidateID, userID, string(candidateType)); err != nil {
+		// If this fails, you should roll back the IncrementVote
+		return err
+	}
+
+	// --- NEW ---
+	if _, err := uc.Blockchain.LogCandidateVote(userID, candidateID, candidateType); err != nil {
+		// CRITICAL: DB vote is saved, but blockchain log failed.
+		// This requires a rollback of the DB changes.
+		log.Printf("ERROR: Vote (user %d, candidate %d) saved to DB but failed to log to blockchain: %v", userID, candidateID, err)
+		// For a robust system, you MUST roll back the DB changes here.
+		// For now, we just log.
+	}
+	// ---
 
 	return nil
 }

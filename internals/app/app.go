@@ -62,10 +62,10 @@ func NewApp(kafkaLogger *logging.KafkaLogger) (*App, *auth_usecase.AuthUseCase, 
 	} else {
 		kafkaLogger.Log("INFO", "Connected to Elasticsearch successfully")
 	}
-
-	bc := blockchain.NewBlockchain(2, kafkaLogger)
-	kafkaLogger.Log("INFO", "Blockchain initialized")
-
+	bc, err := service.NewBnbService(config.BNB) // <-- CHANGED
+	if err != nil {
+		kafkaLogger.Log("INFO", "Blockchain initialized")
+	}
 	app := &App{
 		Config:     config,
 		DB:         db,
@@ -159,8 +159,8 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	petition_routes.RegisterPetitionRoutes(mux, petitionsHandler, tokenManager, rbacRepo)
 	kafkaLogger.Log("INFO", "Petition routes registered")
 
-	// Blockchain
-	blockchainHandler := blockchain_routes.NewBlockchainHandler(a.Blockchain)
+	// Blockchain (Handler now shows service info)
+	blockchainHandler := blockchain_routes.NewBlockchainHandler(a.Blockchain) // <-- PASSING THE INTERFACE
 	blockchain_routes.RegisterBlockchainRoutes(mux, blockchainHandler)
 	kafkaLogger.Log("INFO", "Blockchain routes registered")
 

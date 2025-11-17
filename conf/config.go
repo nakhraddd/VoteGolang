@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
 
-type TronConfig struct {
+type BnbConfig struct {
 	NodeURL         string
 	PrivateKey      string
 	ContractAddress string
-	ApiKey          string
+	ChainID         int64
 }
 
 type Config struct {
@@ -23,7 +24,7 @@ type Config struct {
 	DBUser    string
 	DBPass    string
 	DBName    string
-	Tron      *TronConfig // Added
+	BNB       *BnbConfig // Added
 }
 
 func LoadConfig(kafkaLogger *logging.KafkaLogger) *Config {
@@ -36,19 +37,18 @@ func LoadConfig(kafkaLogger *logging.KafkaLogger) *Config {
 		kafkaLogger.Log("INFO", ".env file successfully loaded")
 	}
 
-	cfg := &Config{
-		JWTSecret: getEnv("JWT_SECRET", "defaultsecret", kafkaLogger),
-		DBHost:    getEnv("DB_HOST", "localhost", kafkaLogger),
-		DBPort:    getEnv("DB_PORT", "3306", kafkaLogger),
-		DBUser:    getEnv("DB_USER", "root", kafkaLogger),
-		DBPass:    getEnv("DB_PASS", "$F00tba11!", kafkaLogger),
-		DBName:    getEnv("DB_NAME", "vote_database", kafkaLogger),
-		Tron: &TronConfig{
-			NodeURL:         os.Getenv("TRON_NODE_URL"),
-			PrivateKey:      os.Getenv("TRON_PRIVATE_KEY"),
-			ContractAddress: os.Getenv("TRON_CONTRACT_ADDRESS"),
-			ApiKey:          os.Getenv("TRON_API_KEY"),
-		},
+	return &Config{
+		JWTSecret: getEnv("JWT_SECRET", "defaultsecret"),
+		DBHost:    getEnv("DB_HOST", "localhost"),
+		DBPort:    getEnv("DB_PORT", "3306"),
+		DBUser:    getEnv("DB_USER", "root"),
+		DBPass:    getEnv("DB_PASS", "$F00tba11!"),
+		DBName:    getEnv("DB_NAME", "vote_database"),
+		BNB: &BnbConfig{
+			NodeURL:         os.Getenv("BNB_NODE_URL"),
+			PrivateKey:      os.Getenv("BNB_PRIVATE_KEY"),
+			ContractAddress: os.Getenv("BNB_CONTRACT_ADDRESS"),
+			ChainID:         getEnvAsInt64("BNB_CHAIN")},
 	}
 
 	kafkaLogger.Log("INFO", fmt.Sprintf("Configuration loaded successfully for DB %s:%s", cfg.DBHost, cfg.DBPort))
@@ -64,5 +64,19 @@ func getEnv(key, fallback string, kafkaLogger *logging.KafkaLogger) string {
 		return fallback
 	}
 	kafkaLogger.Log("DEBUG", fmt.Sprintf("Environment variable %s loaded", key))
+	return value
+}
+
+func getEnvAsInt64(key string) int64 {
+	valueStr, exists := os.LookupEnv(key)
+	if !exists {
+		log.Printf("Warning: Environment variable %s not set, using default value %d", key)
+	}
+
+	value, err := strconv.ParseInt(valueStr, 10, 64)
+	if err != nil {
+		log.Printf("Warning: Invalid format for %s (expected integer, got '%s'), using default value %d. Error: %v", key, valueStr, err)
+	}
+
 	return value
 }

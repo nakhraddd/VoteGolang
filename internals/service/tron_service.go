@@ -3,256 +3,210 @@ package service
 import (
 	"VoteGolang/conf"
 	"VoteGolang/internals/domain"
-	"bytes"
-	"encoding/hex"
-	"encoding/json"
+	"context"
+	"crypto/ecdsa"
 	"fmt"
-	"io"
 	"log"
 	"math/big"
-	"net/http"
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/fbsobreira/gotron-sdk/pkg/address"
-	"github.com/fbsobreira/gotron-sdk/pkg/keys"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-// TronService implements the BlockchainService interface using the TRON HTTP API
-type TronService struct {
-	config       *conf.TronConfig
-	ownerAddress string
-	httpClient   *http.Client
-	httpURL      string // e.g., "https://api.shasta.trongrid.io"
+// BnbService implements the BlockchainService interface using an EVM-compatible JSON-RPC client
+type BnbService struct {
+	config          *conf.BnbConfig // Assumes a new config struct for BNB
+	client          *ethclient.Client
+	ownerAddress    common.Address
+	privateKey      *ecdsa.PrivateKey
+	contractAddress common.Address
+	contractABI     abi.ABI
+	chainID         *big.Int
 }
 
-// NewTronService creates a new connection to a TRON node via HTTP
-func NewTronService(config *conf.TronConfig) (BlockchainService, error) {
-	if config.NodeURL == "" || config.PrivateKey == "" || config.ContractAddress == "" {
-		return nil, fmt.Errorf("TRON config (NodeURL, PrivateKey, ContractAddress) is incomplete")
+// NewBnbService creates a new connection to a BNB node via JSON-RPC
+func NewBnbService(config *conf.BnbConfig) (BlockchainService, error) {
+	if config.NodeURL == "" || config.PrivateKey == "" || config.ContractAddress == "" || config.ChainID == 0 {
+		return nil, fmt.Errorf("BNB config (NodeURL, PrivateKey, ContractAddress, ChainID) is incomplete")
 	}
 
-	// 1. Load wallet address
-	privKey, err := keys.GetPrivateKeyFromHex(config.PrivateKey)
+	// 1. Connect to the EVM node
+	client, err := ethclient.Dial(config.NodeURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid TRON private key: %w", err)
-	}
-	// Use the .ToECDSA() fix we found
-	ownerAddress := address.PubkeyToAddress(*privKey.PubKey().ToECDSA()).String()
-
-	// 2. Set up HTTP client
-	// Convert the gRPC URL from .env to the correct HTTP API URL
-	var httpURL string
-	if strings.Contains(config.NodeURL, "grpc.shasta.trongrid.io") {
-		httpURL = "https://api.shasta.trongrid.io"
-	} else if strings.Contains(config.NodeURL, "nileex.io") { // For Nile Testnet
-		httpURL = "https://api.nileex.io"
-	} else {
-		httpURL = "https://api.trongrid.io" // Default to mainnet
+		return nil, fmt.Errorf("failed to connect to BNB node: %w", err)
 	}
 
-	log.Println("Successfully connected to TRON HTTP API at", httpURL)
-	log.Println("Application wallet address:", ownerAddress)
+	// 2. Load private key and derive owner address
+	privateKeyHex := strings.TrimPrefix(strings.ToLower(config.PrivateKey), "0x")
+	privKey, err := crypto.HexToECDSA(privateKeyHex)
+	if err != nil {
+		return nil, fmt.Errorf("invalid BNB private key: %w", err)
+	}
 
-	return &TronService{
-		config:       config,
-		ownerAddress: ownerAddress,
-		httpClient:   &http.Client{Timeout: 10 * time.Second},
-		httpURL:      httpURL,
+	pubKey := privKey.Public()
+	pubKeyECDSA, ok := pubKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("error casting public key to ECDSA")
+	}
+	ownerAddress := crypto.PubkeyToAddress(*pubKeyECDSA)
+
+	// 3. Parse Contract Address
+	contractAddress := common.HexToAddress(config.ContractAddress)
+
+	// 4. Parse Contract ABI (same as before)
+	const contractABIJSON = `[{"name":"logCandidate","type":"function","inputs":[{"name":"candidateId","type":"uint256"},{"name":"name","type":"string"},{"name":"candidateType","type":"string"}]}, {"name":"logCandidateVote","type":"function","inputs":[{"name":"userId","type":"uint256"},{"name":"candidateId","type":"uint256"},{"name":"candidateType","type":"string"}]}, {"name":"logPetition","type":"function","inputs":[{"name":"petitionId","type":"uint256"},{"name":"userId","type":"uint256"},{"name":"title","type":"string"}]}, {"name":"logPetitionVote","type":"function","inputs":[{"name":"userId","type":"uint256"},{"name":"petitionId","type":"uint256"},{"name":"voteType","type":"string"}]}]`
+
+	parsedABI, err := abi.JSON(strings.NewReader(contractABIJSON))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse contract ABI: %w", err)
+	}
+
+	chainID := big.NewInt(config.ChainID)
+	log.Println("Successfully connected to BNB RPC at", config.NodeURL)
+	log.Println("Application wallet address:", ownerAddress.Hex())
+	log.Println("Target contract address:", contractAddress.Hex())
+	log.Println("Using Chain ID:", chainID)
+
+	return &BnbService{
+		config:          config,
+		client:          client,
+		ownerAddress:    ownerAddress,
+		privateKey:      privKey,
+		contractAddress: contractAddress,
+		contractABI:     parsedABI,
+		chainID:         chainID,
 	}, nil
 }
 
 // --- Interface Implementation ---
 
-func (s *TronService) LogCandidateCreation(c *domain.Candidate) (*TransactionLog, error) {
+func (s *BnbService) LogCandidateCreation(c *domain.Candidate) (*TransactionLog, error) {
 	const methodSignature = "logCandidate(uint256,string,string)"
-	// Note: We cast c.ID to *big.Int to match uint256
-	return s.triggerHTTPContract(methodSignature, new(big.Int).SetUint64(uint64(c.ID)), c.Name, string(c.Type))
+	return s.sendEVMTx(methodSignature, new(big.Int).SetUint64(uint64(c.ID)), c.Name, string(c.Type))
 }
 
-func (s *TronService) LogCandidateVote(userID uint, candidateID uint, candidateType domain.CandidateType) (*TransactionLog, error) {
+func (s *BnbService) LogCandidateVote(userID uint, candidateID uint, candidateType domain.CandidateType) (*TransactionLog, error) {
 	const methodSignature = "logCandidateVote(uint256,uint256,string)"
-	return s.triggerHTTPContract(methodSignature, new(big.Int).SetUint64(uint64(userID)), new(big.Int).SetUint64(uint64(candidateID)), string(candidateType))
+	return s.sendEVMTx(methodSignature, new(big.Int).SetUint64(uint64(userID)), new(big.Int).SetUint64(uint64(candidateID)), string(candidateType))
 }
 
-func (s *TronService) LogPetitionCreation(p *domain.Petition) (*TransactionLog, error) {
+func (s *BnbService) LogPetitionCreation(p *domain.Petition) (*TransactionLog, error) {
 	const methodSignature = "logPetition(uint256,uint256,string)"
-	return s.triggerHTTPContract(methodSignature, new(big.Int).SetUint64(uint64(p.ID)), new(big.Int).SetUint64(uint64(p.UserID)), p.Title)
+	return s.sendEVMTx(methodSignature, new(big.Int).SetUint64(uint64(p.ID)), new(big.Int).SetUint64(uint64(p.UserID)), p.Title)
 }
 
-func (s *TronService) LogPetitionVote(userID uint, petitionID uint, voteType domain.VoteType) (*TransactionLog, error) {
+func (s *BnbService) LogPetitionVote(userID uint, petitionID uint, voteType domain.VoteType) (*TransactionLog, error) {
 	const methodSignature = "logPetitionVote(uint256,uint256,string)"
-	return s.triggerHTTPContract(methodSignature, new(big.Int).SetUint64(uint64(userID)), new(big.Int).SetUint64(uint64(petitionID)), string(voteType))
+	return s.sendEVMTx(methodSignature, new(big.Int).SetUint64(uint64(userID)), new(big.Int).SetUint64(uint64(petitionID)), string(voteType))
 }
 
-func (s *TronService) GetServiceInfo() (map[string]interface{}, error) {
-	// Use the HTTP endpoint for node info
-	info, err := s.postToTronGrid("/wallet/getnodeinfo", map[string]interface{}{})
+func (s *BnbService) GetServiceInfo() (map[string]interface{}, error) {
+	header, err := s.client.HeaderByNumber(context.Background(), nil)
 	if err != nil {
 		return nil, err
 	}
 
 	return map[string]interface{}{
-		"service":         "TRON (HTTP)",
-		"nodeUrl":         s.config.NodeURL, // <-- FIX HERE
-		"contractAddress": s.config.ContractAddress,
-		"ownerAddress":    s.ownerAddress,
+		"service":         "BNB Smart Chain (RPC)",
+		"nodeUrl":         s.config.NodeURL,
+		"contractAddress": s.contractAddress.Hex(),
+		"ownerAddress":    s.ownerAddress.Hex(),
 		"status":          "Connected",
-		"currentBlock":    info["block"], // Field from HTTP response
+		"currentBlock":    header.Number.String(),
 	}, nil
 }
 
-// --- TRON Helper Functions ---
+// --- BNB/EVM Helper Function ---
 
-// triggerHTTPContract build, signs, and broadcasts a transaction using the HTTP API
-func (s *TronService) triggerHTTPContract(functionSignature string, params ...interface{}) (*TransactionLog, error) {
-	log.Printf("[TRON HTTP] Calling '%s' with params: %v", functionSignature, params)
-	const feeLimit int64 = 10_000_000
+// sendEVMTx builds, signs, and broadcasts a transaction to an EVM chain
+func (s *BnbService) sendEVMTx(functionSignature string, params ...interface{}) (*TransactionLog, error) {
+	log.Printf("[BNB RPC] Calling '%s' with params: %v", functionSignature, params)
+	methodName := functionSignature[:strings.Index(functionSignature, "(")]
 
-	// 1. ABI-encode the parameters (args only, no function selector)
-	paramHex, err := abiEncode(functionSignature, params...)
+	// 1. Pack transaction data
+	packedData, err := s.contractABI.Pack(methodName, params...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to abi-encode params: %w", err)
+		return nil, fmt.Errorf("failed to pack arguments for method %s: %w", methodName, err)
 	}
 
-	// 2. Build the request payload for TronGrid
-	triggerPayload := map[string]interface{}{
-		"owner_address":     s.ownerAddress,
-		"contract_address":  s.config.ContractAddress,
-		"function_selector": functionSignature,
-		"parameter":         paramHex,
-		"fee_limit":         feeLimit,
-		"visible":           true,
-	}
-
-	// 3. Post to /triggersmartcontract to get the unsigned transaction
-	txExt, err := s.postToTronGrid("/wallet/triggersmartcontract", triggerPayload)
+	// 2. Get nonce
+	nonce, err := s.client.PendingNonceAt(context.Background(), s.ownerAddress)
 	if err != nil {
-		return nil, fmt.Errorf("failed to trigger contract via HTTP: %w", err)
+		return nil, fmt.Errorf("failed to get pending nonce: %w", err)
 	}
 
-	// 4. Sign the transaction
-	// Get private key from hex
-	privKey, err := keys.GetPrivateKeyFromHex(s.config.PrivateKey)
+	// 3. Get gas price
+	gasPrice, err := s.client.SuggestGasPrice(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("invalid private key: %w", err)
+		return nil, fmt.Errorf("failed to suggest gas price: %w", err)
 	}
 
-	// Get the raw transaction data to sign
-	rawTxDataHex, ok := txExt["transaction"].(map[string]interface{})["raw_data_hex"].(string)
-	if !ok {
-		return nil, fmt.Errorf("invalid trigger response: missing raw_data_hex")
+	// 4. Estimate gas limit
+	msg := ethereum.CallMsg{
+		From: s.ownerAddress,
+		To:   &s.contractAddress,
+		Data: packedData,
 	}
-	rawTxData, err := hex.DecodeString(rawTxDataHex)
+	gasLimit, err := s.client.EstimateGas(context.Background(), msg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode raw_data_hex: %w", err)
+		return nil, fmt.Errorf("failed to estimate gas: %w. Check contract and params", err)
 	}
 
-	hash := crypto.Keccak256(rawTxData)
-	// Use the .ToECDSA() fix
-	signature, err := crypto.Sign(hash, privKey.ToECDSA())
+	// 5. Create the transaction object (value is 0)
+	tx := types.NewTransaction(nonce, s.contractAddress, big.NewInt(0), gasLimit, gasPrice, packedData)
+
+	// 6. Sign the transaction
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(s.chainID), s.privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign transaction: %w", err)
 	}
 
-	// 5. Broadcast the Signed Transaction
-	// Add the signature to the transaction object
-	tx := txExt["transaction"].(map[string]interface{})
-	tx["signature"] = []string{hex.EncodeToString(signature)}
-
-	broadcastResult, err := s.postToTronGrid("/wallet/broadcasttransaction", tx)
+	// 7. Send the transaction
+	err = s.client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to broadcast transaction: %w", err)
+		return nil, fmt.Errorf("failed to send transaction: %w", err)
 	}
 
-	txID, ok := broadcastResult["txid"].(string)
-	if !ok {
-		return nil, fmt.Errorf("broadcast did not return txid: %v", broadcastResult)
+	log.Printf("[BNB RPC] Successfully broadcasted TX: %s | From: %s | Contract: %s | Function: %s",
+		signedTx.Hash().Hex(),
+		s.ownerAddress.Hex(),
+		s.contractAddress.Hex(),
+		functionSignature)
+
+	// 8. Wait for the transaction to be mined
+	log.Printf("[BNB RPC] Waiting for TX %s to be mined...", signedTx.Hash().Hex())
+	receipt, err := bind.WaitMined(context.Background(), s.client, signedTx)
+	if err != nil {
+		return nil, fmt.Errorf("error waiting for tx %s to be mined: %w", signedTx.Hash().Hex(), err)
 	}
-	log.Printf("[TRON HTTP] Successfully broadcasted TX: %s", txID)
+
+	if receipt.Status == 0 {
+		// Transaction reverted
+		return nil, fmt.Errorf("transaction %s reverted by EVM", signedTx.Hash().Hex())
+	}
+
+	// 9. Calculate fee (Fee = GasUsed * EffectiveGasPrice)
+	// Note: We use Wei, not SUN.
+	feePaid := new(big.Int).Mul(receipt.EffectiveGasPrice, big.NewInt(int64(receipt.GasUsed)))
+
+	log.Printf("[BNB RPC] TX %s confirmed. Block: %d | Fee Paid: %s Wei (%.18f BNB)",
+		receipt.TxHash.Hex(),
+		receipt.BlockNumber,
+		feePaid.String(),
+		new(big.Float).Quo(new(big.Float).SetInt(feePaid), big.NewFloat(1e18)))
 
 	return &TransactionLog{
-		TransactionID: txID,
+		TransactionID: receipt.TxHash.Hex(),
 		Timestamp:     time.Now(),
 		ActionType:    functionSignature,
 		Details:       params,
+		FeeWei:        feePaid.Int64(), // Use the updated struct field
 	}, nil
-}
-
-// postToTronGrid is a generic helper to make HTTP requests
-func (s *TronService) postToTronGrid(endpoint string, payload interface{}) (map[string]interface{}, error) {
-	jsonBody, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", s.httpURL+endpoint, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	// Add API key if it's in the config
-	if s.config.ApiKey != "" { // <-- FIX HERE
-		req.Header.Set("TRON-PRO-API-KEY", s.config.ApiKey) // <-- FIX HERE
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var result map[string]interface{}
-	if err := json.Unmarshal(bodyBytes, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse TronGrid response: %s", string(bodyBytes))
-	}
-
-	// Check for errors in the response
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("TronGrid API error (HTTP %d): %s", resp.StatusCode, string(bodyBytes))
-	}
-	if errStr, ok := result["Error"]; ok {
-		return nil, fmt.Errorf("TronGrid API error: %s", errStr)
-	}
-
-	return result, nil
-}
-
-// abiEncode packs parameters (without the 4-byte selector)
-func abiEncode(methodSignature string, args ...interface{}) (string, error) {
-	// 1. Extract type names from signature
-	// e.g., "logCandidate(uint256,string,string)" -> "uint256,string,string"
-	typesStr := methodSignature[strings.Index(methodSignature, "(")+1 : strings.LastIndex(methodSignature, ")")]
-	if typesStr == "" {
-		return "", nil // No arguments
-	}
-	typeNames := strings.Split(typesStr, ",")
-
-	// 2. Build abi.Arguments
-	var inputs abi.Arguments
-	for i, typeName := range typeNames {
-		t, err := abi.NewType(typeName, "", nil)
-		if err != nil {
-			return "", fmt.Errorf("invalid ABI type '%s': %w", typeName, err)
-		}
-		inputs = append(inputs, abi.Argument{Name: fmt.Sprintf("arg%d", i), Type: t})
-	}
-
-	// 3. Pack the arguments
-	packedData, err := inputs.Pack(args...)
-	if err != nil {
-		return "", fmt.Errorf("failed to pack arguments: %w", err)
-	}
-
-	// 4. Return as hex string
-	return hex.EncodeToString(packedData), nil
 }
