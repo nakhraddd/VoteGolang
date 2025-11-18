@@ -7,7 +7,7 @@ on:
 jobs:
   build-and-test:
     name: Build and Test
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -30,7 +30,7 @@ jobs:
   build-and-push-docker:
     name: Build and Push Docker Image
     needs: build-and-test # This job runs only after build-and-test succeeds
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
