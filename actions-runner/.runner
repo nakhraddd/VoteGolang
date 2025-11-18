@@ -1,0 +1,11 @@
+﻿{
+  "agentId": 2,
+  "agentName": "DARKHAN",
+  "poolId": 1,
+  "poolName": "Default",
+  "serverUrl": "https://pipelinesghubeus10.actions.githubusercontent.com/QBOCPqAC9lzT8PsEcvOo0XSgTEcKN6Pj3r9QnPCmyKn23cppXX/",
+  "gitHubUrl": "https://github.com/nakhraddd/VoteGolang",
+  "workFolder": "_work",
+  "useV2Flow": true,
+  "serverUrlV2": "https://broker.actions.githubusercontent.com/"
+}

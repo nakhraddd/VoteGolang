@@ -7,7 +7,7 @@ on:
 jobs:
   build-and-test:
     name: Build and Test
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
@@ -30,7 +30,7 @@ jobs:
   build-and-push-docker:
     name: Build and Push Docker Image
     needs: build-and-test # This job runs only after build-and-test succeeds
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
@@ -50,3 +50,4 @@ jobs:
         with:
           context: .
           push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/votegolang:latest
