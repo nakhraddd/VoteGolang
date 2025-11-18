@@ -2,7 +2,7 @@ name: VoteGolang CI/CD
 
 on:
   push:
-    branches: [ "main" ] # Triggers on push to the main branch
+    branches: [ "master" ] # Triggers on push to the main branch
 
 jobs:
   build-and-test:
