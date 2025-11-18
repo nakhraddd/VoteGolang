@@ -327,6 +327,12 @@ REDIS_PORT=6379
 # Kafka
 KAFKA_BROKER=kafka:9092
 KAFKA_LOG_TOPIC=app-logs
+
+# BNB testnet
+BNB_NODE_URL=https://data-seed-prebsc-1-s1.bnbchain.org:8545
+BNB_PRIVATE_KEY=Get from Metemask
+BNB_CONTRACT_ADDRESS=0x25B3F93B8a493e13E70dcaA2b5906dD504383ad2
+BNB_CHAIN=97
 ```
 
 **🔐 Настройка Gmail App Password:**
@@ -544,7 +550,7 @@ Authorization: Bearer {access_token}
 ```
 
 **Параметры:**
-- `type`: `president`, `deputy`, `session_deputy`
+- `type`: `any candidate created requested by organisation`
 - `page`: номер страницы (опционально)
 - `limit`: количество на странице (опционально)
 
@@ -696,12 +702,9 @@ Content-Type: application/json
 
 {
   "petition_id": 1,
-  "in_favor": true
+  "type": "favor" or "against"
 }
 ```
-
-**Параметры:**
-- `in_favor`: `true` (за), `false` (против)
 
 #### Удалить петицию (Admin или создатель)
 
@@ -718,48 +721,20 @@ Authorization: Bearer {access_token}
 
 ```http
 GET /blockchain
-Authorization: Bearer {access_token}
 ```
 
 **Ответ:**
 ```json
 {
   "success": true,
-  "message": "Blockchain retrieved",
+  "message": "OK",
   "data": {
-    "chain": [
-      {
-        "index": 0,
-        "timestamp": "2025-11-16T00:00:00Z",
-        "transaction": {
-          "type": "genesis",
-          "payload": "Genesis Block",
-          "description": "Initial block"
-        },
-        "prev_hash": "",
-        "hash": "abc123def456...",
-        "nonce": 0,
-        "difficulty": 4
-      },
-      {
-        "index": 1,
-        "timestamp": "2025-11-16T14:23:45Z",
-        "transaction": {
-          "type": "vote",
-          "payload": {
-            "user_id": 5,
-            "candidate_id": 1,
-            "candidate_type": "president"
-          },
-          "description": "Vote recorded"
-        },
-        "prev_hash": "abc123def456...",
-        "hash": "def789ghi012...",
-        "nonce": 12453,
-        "difficulty": 4
-      }
-    ],
-    "difficulty": 4
+    "contractAddress": "0x25B3F93B8a493e13E70dcaA2b5906dD504383ad2",
+    "currentBlock": "73464655",
+    "nodeUrl": "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
+    "ownerAddress": "0xC57b698F7762E17696BAF6309D5f0b80501414C5",
+    "service": "BNB Smart Chain (RPC)",
+    "status": "Connected"
   }
 }
 ```
@@ -881,50 +856,121 @@ if err.Error() == "already voted for this category" {
 
 ### Блокчейн верификация
 
-#### Proof-of-Work
+#### Код контракта
 
-```go
-// Сложность майнинга: 4 нуля в начале хеша
-difficulty := 4
-target := "0000"
+```solididty
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
-for {
-    hash := calculateHash(block)
-    if hash[:difficulty] == target {
-        break // Блок найден!
+/**
+ * @title VotingLog
+ * @dev This contract is owned by the backend application and is used to
+ * write immutable, on-chain logs of voting-related activities.
+ * It uses events, which are cheap to store and auditable.
+ */
+contract VotingLog {
+
+    // The address of your backend application's wallet
+    address public owner;
+
+    // --- Events ---
+    // These events are the on-chain "receipts"
+
+    event CandidateCreated(
+        uint indexed candidateId,
+        string name,
+        string candidateType,
+        uint timestamp
+    );
+
+    event CandidateVoteCast(
+        uint indexed userId,
+        uint indexed candidateId,
+        string candidateType,
+        uint timestamp
+    );
+
+    event PetitionCreated(
+        uint indexed petitionId,
+        uint indexed creatorId,
+        string title,
+        uint timestamp
+    );
+
+    event PetitionVoteCast(
+        uint indexed userId,
+        uint indexed petitionId,
+        string voteType,
+        uint timestamp
+    );
+
+    /**
+     * @dev Sets the 'owner' of the contract to the deployer's address.
+     * The 'owner' will be your application's wallet.
+     */
+    constructor() {
+        owner = msg.sender;
     }
-    block.Nonce++ // Пробуем следующий nonce
-}
-```
 
-#### Структура блока
-
-```go
-type Block struct {
-    Index       int         // Номер блока в цепи
-    Timestamp   time.Time   // Время создания
-    Transaction Transaction // Данные голоса
-    PrevHash    string      // Хеш предыдущего блока
-    Hash        string      // Хеш текущего блока
-    Nonce       int         // Proof-of-Work nonce
-    Difficulty  int         // Сложность майнинга
-}
-```
-
-#### Проверка целостности
-
-```go
-// Каждый блок содержит хеш предыдущего
-// Изменение любого блока нарушит всю цепочку
-func validateChain(chain []*Block) bool {
-    for i := 1; i < len(chain); i++ {
-        if chain[i].PrevHash != chain[i-1].Hash {
-            return false // Цепь нарушена!
-        }
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
     }
-    return true
+
+    /**
+     * @dev Logs the creation of a new candidate.
+     * Only callable by the application wallet.
+     */
+    function logCandidate(
+        uint candidateId,
+        string calldata name,
+        string calldata candidateType
+    ) public onlyOwner {
+        emit CandidateCreated(candidateId, name, candidateType, block.timestamp);
+    }
+
+    /**
+     * @dev Logs a new vote for a candidate.
+     * Only callable by the application wallet.
+     */
+    function logCandidateVote(
+        uint userId,
+        uint candidateId,
+        string calldata candidateType
+    ) public onlyOwner {
+        emit CandidateVoteCast(userId, candidateId, candidateType, block.timestamp);
+    }
+
+    /**
+     * @dev Logs the creation of a new petition.
+     * Only callable by the application wallet.
+     */
+    function logPetition(
+        uint petitionId,
+        uint creatorId,
+        string calldata title
+    ) public onlyOwner {
+        emit PetitionCreated(petitionId, creatorId, title, block.timestamp);
+    }
+
+    /**
+     * @dev Logs a new vote for a petition.
+     * Only callable by the application wallet.
+     */
+    function logPetitionVote(
+        uint userId,
+        uint petitionId,
+        string calldata voteType
+    ) public onlyOwner {
+        emit PetitionVoteCast(userId, petitionId, voteType, block.timestamp);
+    }
 }
 ```
+[Проверка контракта](https://testnet.bscscan.com/address/0x25B3F93B8a493e13E70dcaA2b5906dD504383ad2)
+
 
 ---
 
@@ -1503,6 +1549,8 @@ echo "\n\n✅ Tests completed!"
 - [Elasticsearch](https://www.elastic.co/) - Search and analytics engine
 - [Docker](https://www.docker.com/) - Containerization platform
 - [Swagger](https://swagger.io/) - API documentation
+- [go-ethereum](https://github.com/ethereum/go-ethereum) - Official Go implementation of the Ethereum protocol (used for BNB Smart Chain)
+- [Solidity](https://soliditylang.org/) - Smart Contract programming language
 
 ---
 
