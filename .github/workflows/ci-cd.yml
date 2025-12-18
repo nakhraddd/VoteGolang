@@ -64,6 +64,7 @@ jobs:
 
       - name: Create .env file
         run: |
+          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
           echo "DB_NAME=vote_database" > .env
           echo "DB_USER=vote_user" >> .env
           echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
@@ -101,13 +102,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/gcp-user/app
-            if [ ! -f "docker-compose.yaml" ]; then
-                echo "❌ docker-compose.yaml still missing!"
-                ls -la
-                exit 1
-            fi
+
             export $(grep -v '^#' .env | xargs)
-            sudo chown -R gcp-user:gcp-user .
             
             sudo docker compose pull
             sudo docker compose up -d --remove-orphans
