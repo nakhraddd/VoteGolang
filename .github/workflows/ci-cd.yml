@@ -22,6 +22,7 @@ jobs:
       vm_ip: ${{ steps.set-ip.outputs.VM_IP }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Auth GCP
         uses: google-github-actions/auth@v2
         with:
@@ -30,19 +31,21 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_wrapper: false # Important for capturing output easily
+          terraform_wrapper: false
 
       - name: Terraform Init & Apply
         working-directory: ./terraform
         run: |
           terraform init
-          terraform apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT_ID }}"
+          terraform apply -auto-approve \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="vm_user=${{ secrets.VM_USER }}" \
+            -var="ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}"
 
       - name: Export Instance IP
         id: set-ip
         working-directory: ./terraform
         run: |
-          # This captures the terraform output and sets it as a GitHub Action output
           IP=$(terraform output -raw instance_ip)
           echo "VM_IP=$IP" >> $GITHUB_OUTPUT
 
@@ -68,7 +71,6 @@ jobs:
       - name: Copy Files to VM
         uses: appleboy/scp-action@v0.1.7
         with:
-          # Use the output from the previous job instead of a secret
           host: ${{ needs.infra-and-push.outputs.vm_ip }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -83,5 +85,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/app
+            # Create network if not exists (sometimes docker-compose fails if it's external)
+            sudo docker network create app-network || true
             sudo docker compose pull
             sudo docker compose up -d --remove-orphans
