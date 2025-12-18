@@ -64,6 +64,8 @@ services:
       retries: 10
 
   app:
+    image: ${DOCKERHUB_USERNAME}/votegolang:latest
+    restart: always
     build: .
     depends_on:
       db:

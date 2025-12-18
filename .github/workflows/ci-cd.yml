@@ -106,7 +106,7 @@ jobs:
                 ls -la
                 exit 1
             fi
-            
+            export $(grep -v '^#' .env | xargs)
             sudo chown -R gcp-user:gcp-user .
             
             sudo docker compose pull
