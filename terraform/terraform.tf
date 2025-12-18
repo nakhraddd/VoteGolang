@@ -1,22 +1,20 @@
 import {
-  id = "projects/${var.project_id}/global/firewalls/allow-http-ssh-kafka"
+  id = "projects/${var.project_id}/global/firewalls/allow-app-traffic"
   to = google_compute_firewall.default
 }
 
+# This maps existing GCP VM to the 'app_server' resource
 import {
   id = "projects/${var.project_id}/zones/europe-west4-a/instances/votegolang-vm"
   to = google_compute_instance.app_server
 }
 
+# This maps existing GCP Static IP to the 'static_ip' resource
 import {
   id = "projects/${var.project_id}/regions/europe-west4/addresses/votegolang-static-ip"
   to = google_compute_address.static_ip
 }
 
-import {
-  id = "projects/${var.project_id}/global/firewalls/allow-app-traffic"
-  to = google_compute_address.static_ip
-}
 terraform {
   required_providers {
     google = {
@@ -32,18 +30,16 @@ provider "google" {
   zone    = "europe-west4-a"
 }
 
-# Variables
 variable "project_id" {}
 variable "ssh_public_key" {}
 variable "instance_name" { default = "votegolang-vm" }
 
-# Connect to existing IP if it exists
+# Resource names must match the 'to' field in the import blocks above
 resource "google_compute_address" "static_ip" {
   name   = "votegolang-static-ip"
   region = "europe-west4"
 }
 
-# Firewall - Merged SSH and App ports
 resource "google_compute_firewall" "default" {
   name    = "allow-app-traffic"
   network = "default"
@@ -56,8 +52,10 @@ resource "google_compute_firewall" "default" {
 
 resource "google_compute_instance" "app_server" {
   name         = var.instance_name
-  machine_type = "e2-standard-4" # Required for ELK/Kafka
+  machine_type = "e2-standard-4"
   zone         = "europe-west4-a"
+
+  allow_stopping_for_update = true
 
   boot_disk {
     initialize_params {
@@ -80,23 +78,20 @@ resource "google_compute_instance" "app_server" {
   metadata_startup_script = <<-EOF
     #!/bin/bash
     set -e
-    # Wait for apt locks
     while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do sleep 1; done
-    
-    # Install Docker
+
     if ! command -v docker &> /dev/null; then
       apt-get update
       apt-get install -y ca-certificates curl gnupg
       install -m 0755 -d /etc/apt/keyrings
       curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
       chmod a+r /etc/apt/keyrings/docker.gpg
-      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.debian.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
       apt-get update
       apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
       systemctl enable docker
       systemctl start docker
     fi
-    # Ensure gcp-user can use docker
     usermod -aG docker gcp-user
   EOF
 }
