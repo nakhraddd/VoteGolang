@@ -32,6 +32,14 @@ variable "project_id" {
   description = "The GCP Project ID"
 }
 
+variable "vm_user" {
+  description = "The SSH username"
+  default     = "debian"
+}
+
+variable "ssh_public_key" {
+  description = "The public SSH key content"
+}
 # 1. Use a Data Source for the Network
 # This ensures we don't try to "re-create" the default network if it exists.
 data "google_compute_network" "default" {
@@ -68,8 +76,11 @@ resource "google_compute_instance" "app_server" {
   machine_type = "e2-standard-4"
   zone         = "europe-west4-a"
 
-  # This allows updating the VM (like changing machine type) without deleting it
   allow_stopping_for_update = true
+
+  metadata = {
+    ssh-keys = "${var.vm_user}:${var.ssh_public_key}"
+  }
 
   boot_disk {
     initialize_params {
@@ -88,16 +99,16 @@ resource "google_compute_instance" "app_server" {
   metadata_startup_script = <<-EOT
     #!/bin/bash
     if ! command -v docker &> /dev/null; then
-      sudo apt-get update
-      sudo apt-get install -y ca-certificates curl gnupg
-      sudo install -m 0755 -d /etc/apt/keyrings
-      curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-      sudo chmod a+r /etc/apt/keyrings/docker.gpg
-      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-      sudo apt-get update
-      sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-      sudo systemctl enable docker
-      sudo systemctl start docker
+        apt-get update
+        apt-get install -y ca-certificates curl gnupg
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        chmod a+r /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+        apt-get update
+        apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        systemctl enable docker
+        systemctl start docker
     fi
   EOT
 }
