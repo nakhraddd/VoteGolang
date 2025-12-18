@@ -80,8 +80,23 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/app
-            # Wait for docker to be ready (from startup script)
-            timeout 180 bash -c 'until command -v docker; do echo "Waiting for Docker..."; sleep 5; done'
             
+            # 1. Debug: Check why startup script might be failing
+            echo "Checking startup script logs..."
+            sudo journalctl -u google-startup-scripts.service --no-pager -n 20
+            
+            # 2. Improved Wait
+            echo "Waiting for Docker installation..."
+            for i in {1..20}; do
+              if command -v docker &> /dev/null; then
+                echo "✅ Docker found!"
+                break
+              fi
+              echo "Waiting... ($i/20)"
+              sleep 10
+            done
+            
+            # 3. Pull and Run
+            # We use 'sudo' explicitly here to avoid group-sync issues during the first boot
             sudo docker compose pull
             sudo docker compose up -d --remove-orphans

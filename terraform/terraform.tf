@@ -78,21 +78,29 @@ resource "google_compute_instance" "app_server" {
   metadata_startup_script = <<-EOF
     #!/bin/bash
     set -e
-    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do sleep 1; done
 
+    # 1. More aggressive wait for apt locks
+    echo "Waiting for system updates to finish..."
+    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ; do sleep 5; done
+
+    # 2. Install Docker if missing
     if ! command -v docker &> /dev/null; then
       apt-get update
       apt-get install -y ca-certificates curl gnupg
       install -m 0755 -d /etc/apt/keyrings
       curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
       chmod a+r /etc/apt/keyrings/docker.gpg
-      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.debian.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
       apt-get update
       apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
       systemctl enable docker
       systemctl start docker
     fi
+
+    # 3. CRITICAL: Add user to group AND ensure it takes effect
     usermod -aG docker gcp-user
+    # Force the group change for the current session (though SSH usually handles this on next login)
+    newgrp docker || true
   EOF
 }
 
