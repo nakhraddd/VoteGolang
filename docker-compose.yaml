@@ -74,7 +74,7 @@ services:
       redis:
         condition: service_started
     env_file:
-      - .env # The Go app no longer needs its port exposed to the host
+      - .env
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest

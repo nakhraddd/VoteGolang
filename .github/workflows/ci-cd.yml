@@ -33,7 +33,6 @@ jobs:
 
       - run: terraform -chdir=terraform init
 
-      # Import block to "connect" if it already exists
       - name: Terraform Apply
         run: |
           terraform -chdir=terraform apply -auto-approve \
@@ -105,13 +104,6 @@ jobs:
 
             export $(grep -v '^#' .env | xargs)
             
-            if [ -z "$DOCKERHUB_USERNAME" ]; then
-              echo "❌ ERROR: DOCKERHUB_USERNAME is not set in .env"
-              cat .env
-              exit 1
-            fi
-            
-            # 3. Use sudo -E to preserve the exported DOCKERHUB_USERNAME
             sudo -E docker compose pull
             sudo -E docker compose up -d --remove-orphans
             
