@@ -15,39 +15,33 @@ jobs:
       - run: go mod download
       - run: go test -v ./...
 
-  infra-and-push:
+  terraform-and-docker:
     needs: build-and-test
     runs-on: ubuntu-latest
     outputs:
-      vm_ip: ${{ steps.set-ip.outputs.VM_IP }}
+      instance_ip: ${{ steps.terraform-output.outputs.instance_ip }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Auth GCP
-        uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
 
-      - name: Terraform Init & Apply
-        working-directory: ./terraform
+      - run: terraform -chdir=terraform init
+
+      # Import block to "connect" if it already exists
+      - name: Terraform Apply
         run: |
-          terraform init
-          terraform apply -auto-approve \
+          terraform -chdir=terraform apply -auto-approve \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var="vm_user=${{ secrets.VM_USER }}" \
             -var="ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}"
 
-      - name: Export Instance IP
-        id: set-ip
-        working-directory: ./terraform
-        run: |
-          IP=$(terraform output -raw instance_ip)
-          echo "VM_IP=$IP" >> $GITHUB_OUTPUT
+      - id: terraform-output
+        run: echo "instance_ip=$(terraform -chdir=terraform output -raw instance_ip)" >> $GITHUB_OUTPUT
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -55,7 +49,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and Push Docker
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -63,16 +57,16 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/votegolang:latest
 
   deploy:
-    needs: infra-and-push
+    needs: terraform-and-docker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy Files to VM
+      - name: Copy Config Files
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ needs.infra-and-push.outputs.vm_ip }}
-          username: ${{ secrets.VM_USER }}
+          host: ${{ needs.terraform-and-docker.outputs.instance_ip }}
+          username: gcp-user
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "docker-compose.yml,nginx/,logstash/, .env"
           target: "~/app"
@@ -80,12 +74,13 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ needs.infra-and-push.outputs.vm_ip }}
-          username: ${{ secrets.VM_USER }}
+          host: ${{ needs.terraform-and-docker.outputs.instance_ip }}
+          username: gcp-user
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/app
-            # Create network if not exists (sometimes docker-compose fails if it's external)
-            sudo docker network create app-network || true
+            # Wait for docker to be ready (from startup script)
+            timeout 180 bash -c 'until command -v docker; do echo "Waiting for Docker..."; sleep 5; done'
+            
             sudo docker compose pull
             sudo docker compose up -d --remove-orphans

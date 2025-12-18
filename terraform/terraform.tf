@@ -1,18 +1,3 @@
-import {
-  id = "projects/${var.project_id}/global/firewalls/allow-http-ssh-kafka"
-  to = google_compute_firewall.default
-}
-
-import {
-  id = "projects/${var.project_id}/zones/europe-west4-a/instances/votegolang-vm"
-  to = google_compute_instance.app_server
-}
-
-import {
-  id = "projects/${var.project_id}/regions/europe-west4/addresses/votegolang-static-ip"
-  to = google_compute_address.static_ip
-}
-
 terraform {
   required_providers {
     google = {
@@ -28,59 +13,32 @@ provider "google" {
   zone    = "europe-west4-a"
 }
 
-variable "project_id" {
-  description = "The GCP Project ID"
-}
+# Variables
+variable "project_id" {}
+variable "ssh_public_key" {}
+variable "instance_name" { default = "votegolang-vm" }
 
-variable "vm_user" {
-  description = "The SSH username"
-  default     = "debian"
-}
-
-variable "ssh_public_key" {
-  description = "The public SSH key content"
-}
-# 1. Use a Data Source for the Network
-# This ensures we don't try to "re-create" the default network if it exists.
-data "google_compute_network" "default" {
-  name = "default"
-}
-
-# 2. Static IP with a lifecycle protection
+# Connect to existing IP if it exists
 resource "google_compute_address" "static_ip" {
   name   = "votegolang-static-ip"
   region = "europe-west4"
-
-  # If you manually delete the VM, this prevents the IP from being nuked
-  lifecycle {
-    prevent_destroy = false
-  }
 }
 
-# 3. Firewall - Allow required ports
+# Firewall - Merged SSH and App ports
 resource "google_compute_firewall" "default" {
-  name    = "allow-http-ssh-kafka"
-  network = data.google_compute_network.default.name
-
+  name    = "allow-app-traffic"
+  network = "default"
   allow {
     protocol = "tcp"
-    ports    = ["22", "80", "8080", "5601", "8081", "9092", "9200"]
+    ports    = ["22", "80", "8080", "5601", "8081"]
   }
-
   source_ranges = ["0.0.0.0/0"]
 }
 
-# 4. The VM Instance
 resource "google_compute_instance" "app_server" {
-  name         = "votegolang-vm"
-  machine_type = "e2-standard-4"
+  name         = var.instance_name
+  machine_type = "e2-standard-4" # Required for ELK/Kafka
   zone         = "europe-west4-a"
-
-  allow_stopping_for_update = true
-
-  metadata = {
-    ssh-keys = "${var.vm_user}:${var.ssh_public_key}"
-  }
 
   boot_disk {
     initialize_params {
@@ -90,27 +48,38 @@ resource "google_compute_instance" "app_server" {
   }
 
   network_interface {
-    network = data.google_compute_network.default.name
+    network = "default"
     access_config {
       nat_ip = google_compute_address.static_ip.address
     }
   }
 
-  metadata_startup_script = <<-EOT
+  metadata = {
+    "ssh-keys" = "gcp-user:${var.ssh_public_key}"
+  }
+
+  metadata_startup_script = <<-EOF
     #!/bin/bash
+    set -e
+    # Wait for apt locks
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do sleep 1; done
+    
+    # Install Docker
     if ! command -v docker &> /dev/null; then
-        apt-get update
-        apt-get install -y ca-certificates curl gnupg
-        install -m 0755 -d /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        chmod a+r /etc/apt/keyrings/docker.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-        apt-get update
-        apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-        systemctl enable docker
-        systemctl start docker
+      apt-get update
+      apt-get install -y ca-certificates curl gnupg
+      install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      chmod a+r /etc/apt/keyrings/docker.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      apt-get update
+      apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      systemctl enable docker
+      systemctl start docker
     fi
-  EOT
+    # Ensure gcp-user can use docker
+    usermod -aG docker gcp-user
+  EOF
 }
 
 output "instance_ip" {
