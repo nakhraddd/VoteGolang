@@ -81,6 +81,9 @@ jobs:
           script: |
             cd ~/app
             
+            echo "Current directory: $(pwd)"
+            ls -la
+            
             # 1. Debug: Check why startup script might be failing
             echo "Checking startup script logs..."
             sudo journalctl -u google-startup-scripts.service --no-pager -n 20
