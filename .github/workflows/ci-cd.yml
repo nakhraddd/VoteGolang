@@ -62,6 +62,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create .env file
+        run: |
+          echo "DB_NAME=vote_database" >> .env
+          echo "DB_USER=vote_user" >> .env
+          echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
+          echo "SMTP_HOST=${{ secrets.SMTP_HOST }}" >> .env
+          echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> .env
+          echo "SMTP_MAIL=${{ secrets.SMTP_MAIL }}" >> .env
+          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env
+          echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
+          echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
+          echo "BNB_NODE_URL=${{ secrets.BNB_NODE_URL }}" .env
+          echo "BNB_PRIVATE_KEY=${{ secrets.BNB_PRIVATE_KEY }}" >> .env
+          echo "BNB_CONTRACT_ADDRESS=${{ secrets.BNB_CONTRACT_ADDRESS }}" >> .env
+          echo "BNB_CHAIN=${{ secrets.BNB_CHAIN }}" >> .env
+
       - name: Copy Config Files
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -70,6 +88,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "./docker-compose.yml,./.env,./nginx/**,./logstash/**"
           target: "~/app"
+          rm: true
+          strip_components: 0
           debug: true
 
       - name: Deploy via SSH
@@ -79,7 +99,7 @@ jobs:
           username: gcp-user
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ~/app
+            cd /home/gcp-user/app
             
             echo "Current directory: $(pwd)"
             ls -la
@@ -103,3 +123,6 @@ jobs:
             # We use 'sudo' explicitly here to avoid group-sync issues during the first boot
             sudo docker compose pull
             sudo docker compose up -d --remove-orphans
+            
+            echo "🚀 Stack is up!"
+            sudo docker ps
