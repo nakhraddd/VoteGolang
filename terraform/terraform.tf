@@ -37,6 +37,11 @@ resource "google_compute_instance" "app_server" {
 
   allow_stopping_for_update = true
 
+  lifecycle {
+    prevent_destroy = false
+
+    ignore_changes = []
+  }
   boot_disk {
     initialize_params {
       image = "debian-cloud/debian-12"
@@ -59,11 +64,9 @@ resource "google_compute_instance" "app_server" {
     #!/bin/bash
     set -e
 
-    # 1. More aggressive wait for apt locks
     echo "Waiting for system updates to finish..."
     while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ; do sleep 5; done
 
-    # 2. Install Docker if missing
     if ! command -v docker &> /dev/null; then
       apt-get update
       apt-get install -y ca-certificates curl gnupg
@@ -77,9 +80,7 @@ resource "google_compute_instance" "app_server" {
       systemctl start docker
     fi
 
-    # 3. CRITICAL: Add user to group AND ensure it takes effect
     usermod -aG docker gcp-user
-    # Force the group change for the current session (though SSH usually handles this on next login)
     newgrp docker || true
   EOF
 }

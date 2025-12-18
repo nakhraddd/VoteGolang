@@ -73,7 +73,6 @@ jobs:
           echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
           echo "REDIS_HOST=redis" >> .env
           echo "REDIS_PORT=6379" >> .env
-          # Ensure there is a space before the target file in the line below
           echo "BNB_NODE_URL=${{ secrets.BNB_NODE_URL }}" >> .env
           echo "BNB_PRIVATE_KEY=${{ secrets.BNB_PRIVATE_KEY }}" >> .env
           echo "BNB_CONTRACT_ADDRESS=${{ secrets.BNB_CONTRACT_ADDRESS }}" >> .env
