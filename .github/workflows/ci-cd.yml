@@ -59,29 +59,29 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/votegolang:latest
 
-      deploy:
-        needs: infra-and-push
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v4
+  deploy:
+    needs: infra-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-          - name: Copy Files to VM
-            uses: appleboy/scp-action@v0.1.7
-            with:
-              # Use the output from the previous job instead of a secret
-              host: ${{ needs.infra-and-push.outputs.vm_ip }}
-              username: ${{ secrets.VM_USER }}
-              key: ${{ secrets.SSH_PRIVATE_KEY }}
-              source: "docker-compose.yml,nginx/,logstash/, .env"
-              target: "~/app"
+      - name: Copy Files to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          # Use the output from the previous job instead of a secret
+          host: ${{ needs.infra-and-push.outputs.vm_ip }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml,nginx/,logstash/, .env"
+          target: "~/app"
 
-          - name: Deploy via SSH
-            uses: appleboy/ssh-action@v1.0.3
-            with:
-              host: ${{ needs.infra-and-push.outputs.vm_ip }}
-              username: ${{ secrets.VM_USER }}
-              key: ${{ secrets.SSH_PRIVATE_KEY }}
-              script: |
-                cd ~/app
-                sudo docker compose pull
-                sudo docker compose up -d --remove-orphans
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ needs.infra-and-push.outputs.vm_ip }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/app
+            sudo docker compose pull
+            sudo docker compose up -d --remove-orphans
