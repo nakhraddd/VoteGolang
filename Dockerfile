@@ -1,20 +1,15 @@
-FROM golang:1.24.0-alpine
-
-ENV GO111MODULE=on \
-    CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64
+FROM golang:1.24.0-alpine AS builder
 
 WORKDIR /app
-
-RUN apk update && apk add --no-cache git
-
+RUN apk add --no-cache git
 COPY go.mod go.sum ./
 RUN go mod download
-
 COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/vote-api ./cmd/app/main.go
 
-RUN go build -o /bin/app ./cmd/app
+FROM alpine:3.21
 
-# Run binary from /bin
-CMD ["/bin/app"]
+WORKDIR /app
+COPY --from=builder /app/vote-api /app/vote-api
+
+CMD ["/app/vote-api"]

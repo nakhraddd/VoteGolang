@@ -64,21 +64,23 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "DB_NAME=vote_database" >> .env
+          echo "DB_NAME=vote_database" > .env
           echo "DB_USER=vote_user" >> .env
           echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
           echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
-          echo "SMTP_HOST=${{ secrets.SMTP_HOST }}" >> .env
-          echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> .env
-          echo "SMTP_MAIL=${{ secrets.SMTP_MAIL }}" >> .env
-          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env
-          echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
-          echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
-          echo "BNB_NODE_URL=${{ secrets.BNB_NODE_URL }}" .env
+          echo "REDIS_HOST=redis" >> .env
+          echo "REDIS_PORT=6379" >> .env
+          # Ensure there is a space before the target file in the line below
+          echo "BNB_NODE_URL=${{ secrets.BNB_NODE_URL }}" >> .env
           echo "BNB_PRIVATE_KEY=${{ secrets.BNB_PRIVATE_KEY }}" >> .env
           echo "BNB_CONTRACT_ADDRESS=${{ secrets.BNB_CONTRACT_ADDRESS }}" >> .env
           echo "BNB_CHAIN=${{ secrets.BNB_CHAIN }}" >> .env
+
+      - name: Verify files exist locally
+        run: |
+          ls -la docker-compose.yml .env nginx/ logstash/
+          # This step will fail the CI if the files are actually missing
 
       - name: Copy Config Files
         uses: appleboy/scp-action@v0.1.7
@@ -86,15 +88,10 @@ jobs:
           host: ${{ needs.terraform-and-docker.outputs.instance_ip }}
           username: gcp-user
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: |
-            docker-compose.yml
-            .env
-            nginx/
-            logstash/
-          target: "~/app"
+          source: "docker-compose.yml,.env,nginx/,logstash/"
+          target: "/home/gcp-user/app"
           rm: true
           strip_components: 0
-          debug: true
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -104,29 +101,16 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/gcp-user/app
+            if [ ! -f "docker-compose.yml" ]; then
+                echo "❌ docker-compose.yml still missing!"
+                ls -la
+                exit 1
+            fi
             
-            echo "Current directory: $(pwd)"
-            ls -la
+            sudo chown -R gcp-user:gcp-user .
             
-            # 1. Debug: Check why startup script might be failing
-            echo "Checking startup script logs..."
-            sudo journalctl -u google-startup-scripts.service --no-pager -n 20
-            
-            # 2. Improved Wait
-            echo "Waiting for Docker installation..."
-            for i in {1..20}; do
-              if command -v docker &> /dev/null; then
-                echo "✅ Docker found!"
-                break
-              fi
-              echo "Waiting... ($i/20)"
-              sleep 10
-            done
-            
-            # 3. Pull and Run
-            # We use 'sudo' explicitly here to avoid group-sync issues during the first boot
             sudo docker compose pull
             sudo docker compose up -d --remove-orphans
             
-            echo "🚀 Stack is up!"
-            sudo docker ps
+            echo "🚀 Deployment Successful!"
+            sudo docker compose ps
