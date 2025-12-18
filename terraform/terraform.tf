@@ -13,6 +13,10 @@ import {
   to = google_compute_address.static_ip
 }
 
+import {
+  id = "projects/${var.project_id}/global/firewalls/allow-app-traffic"
+  to = google_compute_address.static_ip
+}
 terraform {
   required_providers {
     google = {
