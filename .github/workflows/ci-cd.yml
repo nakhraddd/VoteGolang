@@ -68,7 +68,7 @@ jobs:
           host: ${{ needs.terraform-and-docker.outputs.instance_ip }}
           username: gcp-user
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.yml,nginx/,logstash/, .env"
+          source: "./docker-compose.yml,./.env,./nginx/**,./logstash/**"
           target: "~/app"
           debug: true
 
