@@ -18,9 +18,10 @@ jobs:
   infra-and-push:
     needs: build-and-test
     runs-on: ubuntu-latest
+    outputs:
+      vm_ip: ${{ steps.set-ip.outputs.VM_IP }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Auth GCP
         uses: google-github-actions/auth@v2
         with:
@@ -28,12 +29,22 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false # Important for capturing output easily
 
       - name: Terraform Init & Apply
         working-directory: ./terraform
         run: |
           terraform init
           terraform apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Export Instance IP
+        id: set-ip
+        working-directory: ./terraform
+        run: |
+          # This captures the terraform output and sets it as a GitHub Action output
+          IP=$(terraform output -raw instance_ip)
+          echo "VM_IP=$IP" >> $GITHUB_OUTPUT
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -48,28 +59,29 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/votegolang:latest
 
-  deploy:
-    needs: infra-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      deploy:
+        needs: infra-and-push
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
 
-      - name: Copy Files to VM
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VM_IP }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.yml,nginx/,logstash/, .env"
-          target: "~/app"
+          - name: Copy Files to VM
+            uses: appleboy/scp-action@v0.1.7
+            with:
+              # Use the output from the previous job instead of a secret
+              host: ${{ needs.infra-and-push.outputs.vm_ip }}
+              username: ${{ secrets.VM_USER }}
+              key: ${{ secrets.SSH_PRIVATE_KEY }}
+              source: "docker-compose.yml,nginx/,logstash/, .env"
+              target: "~/app"
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VM_IP }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ~/app
-            sudo docker compose pull
-            sudo docker compose up -d --remove-orphans
+          - name: Deploy via SSH
+            uses: appleboy/ssh-action@v1.0.3
+            with:
+              host: ${{ needs.infra-and-push.outputs.vm_ip }}
+              username: ${{ secrets.VM_USER }}
+              key: ${{ secrets.SSH_PRIVATE_KEY }}
+              script: |
+                cd ~/app
+                sudo docker compose pull
+                sudo docker compose up -d --remove-orphans
