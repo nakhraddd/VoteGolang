@@ -67,7 +67,7 @@ jobs:
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
           echo "DB_NAME=vote_database" >> .env
           echo "DB_USER=vote_user" >> .env
-          echo "DB_HOST="${{ secrets.DB_HOST }}" >> .env
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
           echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
           echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
