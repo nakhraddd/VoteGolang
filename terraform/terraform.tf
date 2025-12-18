@@ -1,3 +1,18 @@
+import {
+  id = "projects/${var.project_id}/global/firewalls/allow-http-ssh-kafka"
+  to = google_compute_firewall.default
+}
+
+import {
+  id = "projects/${var.project_id}/zones/europe-west4-a/instances/votegolang-vm"
+  to = google_compute_instance.app_server
+}
+
+import {
+  id = "projects/${var.project_id}/regions/europe-west4/addresses/votegolang-static-ip"
+  to = google_compute_address.static_ip
+}
+
 terraform {
   required_providers {
     google = {
@@ -89,9 +104,4 @@ resource "google_compute_instance" "app_server" {
 
 output "instance_ip" {
   value = google_compute_address.static_ip.address
-}
-
-import {
-  id = "projects/${var.project_id}/regions/europe-west4/addresses/votegolang-static-ip"
-  to = google_compute_address.static_ip
 }
