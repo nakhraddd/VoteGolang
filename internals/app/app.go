@@ -8,7 +8,7 @@ import (
 	"VoteGolang/internals/app/migrations"
 	"VoteGolang/internals/controller/blockchain_routes"
 	"VoteGolang/internals/controller/candidate_routes"
-	"VoteGolang/internals/controller/http/middleware"
+	middleware "VoteGolang/internals/controller/http"
 	"VoteGolang/internals/controller/login_routes"
 	"VoteGolang/internals/controller/petition_routes"
 	"VoteGolang/internals/domain"
