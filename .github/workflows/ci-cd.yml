@@ -70,6 +70,8 @@ jobs:
           echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
           echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
+          echo "KAFKA_BROKER=kafka:9092" >> .env
+          echo "ELASTICSEARCH_URL=http://elasticsearch:9200" >> .env
           echo "REDIS_HOST=redis" >> .env
           echo "REDIS_PORT=6379" >> .env
           echo "BNB_NODE_URL=${{ secrets.BNB_NODE_URL }}" >> .env
