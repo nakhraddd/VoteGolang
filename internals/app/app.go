@@ -8,6 +8,7 @@ import (
 	"VoteGolang/internals/app/migrations"
 	"VoteGolang/internals/controller/blockchain_routes"
 	"VoteGolang/internals/controller/candidate_routes"
+	"VoteGolang/internals/controller/http/middleware"
 	"VoteGolang/internals/controller/login_routes"
 	"VoteGolang/internals/controller/petition_routes"
 	"VoteGolang/internals/domain"
@@ -175,7 +176,8 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	})
 
 	// Wrap mux with logging middleware
-	err := http.ListenAndServe(":8080", logMiddleware(mux))
+	handler := middleware.CORSMiddleware(logMiddleware(mux))
+	err := http.ListenAndServe(":8080", handler)
 	if err != nil {
 		kafkaLogger.Log("ERROR", fmt.Sprintf("Server failed to start: %v", err))
 		log.Fatalf("Error starting server: %v", err)
