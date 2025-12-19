@@ -75,11 +75,20 @@ func NewApp(kafkaLogger *logging.KafkaLogger) (*App, *auth_usecase.AuthUseCase, 
 
 	userRepo := candidate_repo.NewUserRepository(db)
 	tokenManager := domain.NewJwtToken(config.JWTSecret)
-	// создаем Redis клиент
+
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		redisHost = "redis"
+	}
+
+	redisPort := os.Getenv("REDIS_PORT")
+	if redisPort == "" {
+		redisPort = "6379"
+	}
+
 	rdb := redis.NewClient(&redis.Options{
-		Addr: fmt.Sprintf("%v:%v", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
-		//Password: "", // если есть пароль
-		DB: 0,
+		Addr: fmt.Sprintf("%s:%s", redisHost, redisPort),
+		DB:   0,
 	})
 
 	ctx := context.Background()
