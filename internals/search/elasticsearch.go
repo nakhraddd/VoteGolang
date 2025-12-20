@@ -15,6 +15,7 @@ type Elasticsearch struct {
 	Address string
 }
 
+// for ci cd
 // NewElasticsearch creates a new Elasticsearch instance.
 func NewElasticsearch(address string) *Elasticsearch {
 	return &Elasticsearch{Address: address}
