@@ -63,6 +63,13 @@ func NewApp(kafkaLogger *logging.KafkaLogger) (*App, *auth_usecase.AuthUseCase, 
 		kafkaLogger.Log("ERROR", fmt.Sprintf("Failed to connect to Elasticsearch: %v", err))
 	} else {
 		kafkaLogger.Log("INFO", "Connected to Elasticsearch successfully")
+		// Ensure indices exist with the correct mappings
+		if err := search.CreateIndexWithMapping(esClient, "candidates", search.CandidateMapping); err != nil {
+			kafkaLogger.Log("ERROR", fmt.Sprintf("Failed to create 'candidates' index: %v", err))
+		}
+		if err := search.CreateIndexWithMapping(esClient, "petitions", search.PetitionMapping); err != nil {
+			kafkaLogger.Log("ERROR", fmt.Sprintf("Failed to create 'petitions' index: %v", err))
+		}
 	}
 	bc, err := service.NewBnbService(config.BNB) // <-- CHANGED
 	if err != nil {

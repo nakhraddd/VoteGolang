@@ -32,7 +32,7 @@ func NewElasticsearch(address string) *Elasticsearch {
 	}
 }
 
-// Search performs a fuzzy search on the specified index and field.
+// Search performs a search on the specified index and field.
 func (e *Elasticsearch) Search(searchType, query string) ([]interface{}, error) {
 	config, ok := e.searchTypeConfig[searchType]
 	if !ok {
@@ -41,11 +41,8 @@ func (e *Elasticsearch) Search(searchType, query string) ([]interface{}, error) 
 
 	reqBody := map[string]interface{}{
 		"query": map[string]interface{}{
-			"fuzzy": map[string]interface{}{
-				config.Field: map[string]interface{}{
-					"value":     query,
-					"fuzziness": "AUTO",
-				},
+			"match": map[string]interface{}{
+				config.Field: query,
 			},
 		},
 	}
