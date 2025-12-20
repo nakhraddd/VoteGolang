@@ -26,31 +26,49 @@ func NewAuthUseCase(userRepo domain.UserRepository, roleRepo domain.RoleReposito
 }
 
 // Login authenticates a user and returns a JWT access tokens and refresh tokens.
-func (a *AuthUseCase) Login(username, password string) (string, string, error) {
+func (a *AuthUseCase) Login(username, password string) (string, string, bool, error) {
 	u, err := a.UserRepo.GetByUsername(username)
 	if err != nil {
-		return "", "", fmt.Errorf("user not found")
+		return "", "", false, fmt.Errorf("user not found")
 	}
 
 	if !u.EmailVerified {
-		return "", "", fmt.Errorf("email not verified")
+		return "", "", false, fmt.Errorf("email not verified")
 	}
 
 	if !security.CheckPasswordHash(password, u.Password) {
-		return "", "", fmt.Errorf("invalid credentials")
+		return "", "", false, fmt.Errorf("invalid credentials")
 	}
 
 	accessToken, err := a.TokenManager.CreateAccessToken(u.ID, 15*time.Minute)
 	if err != nil {
-		return "", "", err
+		return "", "", false, err
 	}
 
 	refreshToken, err := a.TokenManager.CreateRefreshToken(u.ID, 24*time.Hour)
 	if err != nil {
-		return "", "", err
+		return "", "", false, err
 	}
 
-	return accessToken, refreshToken, nil
+	// Check if user is admin
+	isAdmin := false
+	if u.Role.Name == "admin" {
+		isAdmin = true
+	} else {
+		// Fallback: fetch role if not preloaded (though it should be if GetByUsername preloads it)
+		// Assuming GetByUsername might not preload Role, let's be safe or rely on RoleID if we knew admin ID.
+		// Better approach: ensure GetByUsername preloads Role.
+		// If u.Role.Name is empty, we might need to fetch it.
+		// For now, let's assume u.Role is populated or we fetch it.
+		if u.Role.ID != 0 && u.Role.Name == "" {
+			// This part depends on implementation of GetByUsername.
+			// If it doesn't preload, we can't know the name easily without another query.
+			// Let's assume standard implementation preloads or we check ID if "admin" role ID is constant (bad practice).
+			// Ideally, update GetByUsername to Preload("Role").
+		}
+	}
+
+	return accessToken, refreshToken, isAdmin, nil
 }
 
 // Register registers a new user with a hashed password.

@@ -31,7 +31,8 @@ func (r *userGormRepository) GetByID(id uint) (*domain.User, error) {
 
 func (r *userGormRepository) GetByUsername(username string) (*domain.User, error) {
 	var user domain.User
-	err := r.db.First(&user, "username = ?", username).Error
+	// Preload Role to check permissions/admin status
+	err := r.db.Preload("Role").First(&user, "username = ?", username).Error
 	if err != nil {
 		return nil, err
 	}

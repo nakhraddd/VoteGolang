@@ -44,7 +44,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.authUseCase.Login(req.Username, req.Password)
+	accessToken, refreshToken, isAdmin, err := h.authUseCase.Login(req.Username, req.Password)
 	if err != nil {
 		h.kafkaLogger.Log("WARN", fmt.Sprintf("Login failed for %s: %v", req.Username, err))
 		response.JSON(w, http.StatusUnauthorized, false, "Unauthorized: "+err.Error(), nil)
@@ -52,10 +52,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.kafkaLogger.Log("INFO", fmt.Sprintf("Login success for %s", req.Username))
-	response.JSON(w, http.StatusOK, true, "OK", domain.TokenResponse{
+
+	tokenResp := domain.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-	})
+	}
+
+	if isAdmin {
+		tokenResp.IsAdmin = true
+	}
+
+	response.JSON(w, http.StatusOK, true, "OK", tokenResp)
 }
 
 // Register godoc
