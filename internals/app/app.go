@@ -199,7 +199,8 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 
 	// Wrap mux with logging middleware
 	handler := middleware.CORSMiddleware(logMiddleware(mux))
-	err := http.ListenAndServe(":8080", handler)
+	// Listen on all network interfaces
+	err := http.ListenAndServe("0.0.0.0:8080", handler)
 	if err != nil {
 		kafkaLogger.Log("ERROR", fmt.Sprintf("Server failed to start: %v", err))
 		log.Fatalf("Error starting server: %v", err)
