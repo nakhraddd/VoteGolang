@@ -14,10 +14,21 @@ const userIDKey contextKey = "userID"
 
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		// Add your Vercel domain here!
+		allowedOrigins := []string{"http://localhost:3000", "https://dayus.vercel.app"}
+		origin := r.Header.Get("Origin")
+
+		for _, allowedOrigin := range allowedOrigins {
+			if origin == allowedOrigin {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				break
+			}
+		}
+
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
+		// Handle pre-flight requests
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
