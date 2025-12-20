@@ -163,6 +163,7 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 			a.Blockchain,
 			rdb,
 			kafkaLogger,
+			repositories.NewSearchRepository(esClient, "petitions"),
 		),
 		tokenManager.(*domain.JwtToken),
 		kafkaLogger,

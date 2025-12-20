@@ -3,6 +3,7 @@ package petition_usecase
 import (
 	"VoteGolang/internals/app/logging"
 	"VoteGolang/internals/domain"
+	"VoteGolang/internals/infrastructure/repositories"
 	"VoteGolang/internals/service"
 	"context"
 	"encoding/json"
@@ -30,6 +31,7 @@ type petitionUseCase struct {
 	blockchain       service.BlockchainService
 	redis            *redis.Client
 	logger           *logging.KafkaLogger
+	searchRepo       *repositories.SearchRepository
 }
 
 // NewPetitionUseCase updated to include KafkaLogger
@@ -39,6 +41,7 @@ func NewPetitionUseCase(
 	bc service.BlockchainService,
 	rdb *redis.Client,
 	kafkaLogger *logging.KafkaLogger,
+	searchRepo *repositories.SearchRepository,
 ) PetitionUseCase {
 	return &petitionUseCase{
 		petitionRepo:     pr,
@@ -46,6 +49,7 @@ func NewPetitionUseCase(
 		blockchain:       bc,
 		redis:            rdb,
 		logger:           kafkaLogger,
+		searchRepo:       searchRepo,
 	}
 }
 
@@ -81,6 +85,17 @@ func (uc *petitionUseCase) CreatePetition(p *domain.Petition) error {
 		return err
 	}
 	uc.logger.Log("INFO", fmt.Sprintf("Petition %d created successfully in DB", p.ID))
+
+	if uc.searchRepo != nil {
+		go func() {
+			id := fmt.Sprintf("%d", p.ID)
+			if err := uc.searchRepo.Index(context.Background(), id, p); err != nil {
+				uc.logger.Log("WARN", fmt.Sprintf("Failed to index petition %d: %v", p.ID, err))
+			} else {
+				uc.logger.Log("DEBUG", fmt.Sprintf("Petition %d indexed for search", p.ID))
+			}
+		}()
+	}
 
 	// Invalidate cache
 	uc.invalidateAllPetitionCaches()
