@@ -33,18 +33,31 @@ func NewElasticsearch(address string) *Elasticsearch {
 }
 
 // Search performs a search on the specified index and field.
+// If the query is empty, it returns all documents.
 func (e *Elasticsearch) Search(searchType, query string) ([]interface{}, error) {
 	config, ok := e.searchTypeConfig[searchType]
 	if !ok {
 		return nil, fmt.Errorf("unknown search type: %s", searchType)
 	}
 
-	reqBody := map[string]interface{}{
-		"query": map[string]interface{}{
-			"match": map[string]interface{}{
-				config.Field: query,
+	var reqBody map[string]interface{}
+	if query == "" {
+		// If the query is empty, use match_all to return all documents.
+		reqBody = map[string]interface{}{
+			"query": map[string]interface{}{
+				"match_all": map[string]interface{}{},
 			},
-		},
+			"size": 100, // Add a reasonable size limit to avoid overwhelming the client.
+		}
+	} else {
+		// Otherwise, use the match query for searching.
+		reqBody = map[string]interface{}{
+			"query": map[string]interface{}{
+				"match": map[string]interface{}{
+					config.Field: query,
+				},
+			},
+		}
 	}
 
 	reqJSON, err := json.Marshal(reqBody)

@@ -21,10 +21,6 @@ func NewSearchHandler(searcher search.Search) *SearchHandler {
 // Search handles the search requests for different types.
 func (h *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
-	if query == "" {
-		http.Error(w, "query parameter 'q' is required", http.StatusBadRequest)
-		return
-	}
 
 	// Extract search type from the URL path (e.g., "/search/candidates" -> "candidates")
 	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
