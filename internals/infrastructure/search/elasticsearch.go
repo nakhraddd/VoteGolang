@@ -10,31 +10,39 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+type searchConfig struct {
+	Index string
+	Field string
+}
+
 // Elasticsearch is an implementation of the Search interface that uses Elasticsearch.
 type Elasticsearch struct {
-	Address string
+	Address          string
+	searchTypeConfig map[string]searchConfig
 }
 
 // NewElasticsearch creates a new Elasticsearch instance.
 func NewElasticsearch(address string) *Elasticsearch {
-	return &Elasticsearch{Address: address}
+	return &Elasticsearch{
+		Address: address,
+		searchTypeConfig: map[string]searchConfig{
+			"candidates": {Index: "candidates", Field: "name"},
+			"petitions":  {Index: "petitions", Field: "title"},
+		},
+	}
 }
 
-// SearchCandidates searches for candidates by name.
-func (e *Elasticsearch) SearchCandidates(query string) ([]interface{}, error) {
-	return e.search("candidates", "name", query)
-}
+// Search performs a fuzzy search on the specified index and field.
+func (e *Elasticsearch) Search(searchType, query string) ([]interface{}, error) {
+	config, ok := e.searchTypeConfig[searchType]
+	if !ok {
+		return nil, fmt.Errorf("unknown search type: %s", searchType)
+	}
 
-// SearchPetitions searches for petitions by title.
-func (e *Elasticsearch) SearchPetitions(query string) ([]interface{}, error) {
-	return e.search("petitions", "title", query)
-}
-
-func (e *Elasticsearch) search(index, field, query string) ([]interface{}, error) {
 	reqBody := map[string]interface{}{
 		"query": map[string]interface{}{
 			"fuzzy": map[string]interface{}{
-				field: map[string]interface{}{
+				config.Field: map[string]interface{}{
 					"value":     query,
 					"fuzziness": "AUTO",
 				},
@@ -47,7 +55,7 @@ func (e *Elasticsearch) search(index, field, query string) ([]interface{}, error
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	resp, err := http.Post(fmt.Sprintf("%s/%s/_search", e.Address, index), "application/json", bytes.NewBuffer(reqJSON))
+	resp, err := http.Post(fmt.Sprintf("%s/%s/_search", e.Address, config.Index), "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request to Elasticsearch: %w", err)
 	}

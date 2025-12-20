@@ -10,6 +10,6 @@ import (
 func SetupRoutes(mux *http.ServeMux, searcher search.Search) {
 	handler := NewSearchHandler(searcher)
 
-	mux.HandleFunc("/search/candidates", handler.SearchCandidates)
-	mux.HandleFunc("/search/petitions", handler.SearchPetitions)
+	mux.HandleFunc("/search/candidates", handler.Search)
+	mux.HandleFunc("/search/petitions", handler.Search)
 }

@@ -1,7 +1,6 @@
 package search
 
-// Search interface defines the methods for searching candidates and petitions.
+// Search interface defines the methods for searching.
 type Search interface {
-	SearchCandidates(query string) ([]interface{}, error)
-	SearchPetitions(query string) ([]interface{}, error)
+	Search(searchType, query string) ([]interface{}, error)
 }
