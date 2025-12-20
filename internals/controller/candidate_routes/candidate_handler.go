@@ -36,10 +36,6 @@ type candidatesByPageRequest struct {
 	Limit int    `json:"limit" example:"10"`
 }
 
-type searchRequest struct {
-	Query string `json:"query"`
-}
-
 func NewCandidateHandler(useCase *candidate_usecase.CandidateUseCase, tokenManager *candidate_data2.JwtToken, kafkaLogger *logging.KafkaLogger) *CandidateHandler {
 	return &CandidateHandler{
 		UseCase:      useCase,
@@ -329,31 +325,4 @@ func (h *CandidateHandler) DeleteCandidate(w http.ResponseWriter, r *http.Reques
 
 	response.JSON(w, http.StatusOK, true, "Candidate deleted successfully", nil)
 	h.KafkaLogger.Log("INFO", fmt.Sprintf("Candidate deleted: %d", req.ID))
-}
-
-// @Summary Search candidates by name
-// @Tags Candidates
-// @Accept json
-// @Produce json
-// @Param query body searchRequest true "Search query"
-// @Security BearerAuth
-// @Success 200 {array} candidate_data2.Candidate "Search results"
-// @Failure 400 {object} response.JSONResponse "Query is required"
-// @Failure 500 {object} response.JSONResponse "Search failed"
-// @Router /candidate/search [post]
-func (h *CandidateHandler) SearchCandidates(w http.ResponseWriter, r *http.Request) {
-	var req searchRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Query == "" {
-		response.JSON(w, http.StatusBadRequest, false, "Query is required", nil)
-		return
-	}
-
-	results, err := h.UseCase.SearchRepo.Search(req.Query, "Name")
-	if err != nil {
-		response.JSON(w, http.StatusInternalServerError, false, "Search failed", err.Error())
-		return
-	}
-
-	response.JSON(w, http.StatusOK, true, "Search results", results)
 }
