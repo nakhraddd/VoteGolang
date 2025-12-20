@@ -28,13 +28,24 @@ func (r *RedisEmailVerifier) SendVerificationMail(ctx context.Context, email str
 	from := os.Getenv("SMTP_MAIL")
 	password := os.Getenv("SMTP_PASSWORD")
 
-	auth := smtp.PlainAuth("", from, password, host)
-
 	verificationKey := fmt.Sprintf(
 		"%x", sha256.Sum256([]byte(email + "-" + uuid.New().String())[:]),
 	)
 	verificationLinkBase := "http://localhost:8080/verify-email?token="
 	link := fmt.Sprintf("%s%s", verificationLinkBase, verificationKey)
+
+	// Check if SMTP is configured
+	if host == "" || port == "" {
+		log.Printf("SMTP not configured. Skipping email send. Verification Link: %s\n", link)
+		// Save to Redis so verification still works
+		err := r.client.Set(ctx, verificationKey, email, 5*time.Minute).Err()
+		if err != nil {
+			return "", "", err
+		}
+		return link, verificationKey, nil
+	}
+
+	auth := smtp.PlainAuth("", from, password, host)
 
 	// письмо
 	body := fmt.Sprintf(`
