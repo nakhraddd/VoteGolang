@@ -31,7 +31,14 @@ func (r *RedisEmailVerifier) SendVerificationMail(ctx context.Context, email str
 	verificationKey := fmt.Sprintf(
 		"%x", sha256.Sum256([]byte(email + "-" + uuid.New().String())[:]),
 	)
-	verificationLinkBase := "http://localhost:8080/verify-email?token="
+
+	// Use environment variable for base URL or fallback to localhost
+	baseURL := os.Getenv("APP_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://34.6.74.23:8080"
+	}
+
+	verificationLinkBase := fmt.Sprintf("%s/verify-email?token=", baseURL)
 	link := fmt.Sprintf("%s%s", verificationLinkBase, verificationKey)
 
 	// Check if SMTP is configured
