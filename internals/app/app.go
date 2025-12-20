@@ -11,9 +11,10 @@ import (
 	middleware "VoteGolang/internals/controller/http"
 	"VoteGolang/internals/controller/login_routes"
 	"VoteGolang/internals/controller/petition_routes"
+	"VoteGolang/internals/controller/search_routes"
 	"VoteGolang/internals/domain"
 	"VoteGolang/internals/infrastructure/email"
-	candidate_repo "VoteGolang/internals/infrastructure/repositories"
+	"VoteGolang/internals/infrastructure/repositories"
 	"VoteGolang/internals/infrastructure/search"
 	"VoteGolang/internals/service" // <-- NEW IMPORT
 	"VoteGolang/internals/usecases/auth_usecase"
@@ -73,7 +74,7 @@ func NewApp(kafkaLogger *logging.KafkaLogger) (*App, *auth_usecase.AuthUseCase, 
 		Blockchain: bc, // <-- CHANGED
 	}
 
-	userRepo := candidate_repo.NewUserRepository(db)
+	userRepo := repositories.NewUserRepository(db)
 	tokenManager := domain.NewJwtToken(config.JWTSecret)
 
 	redisHost := os.Getenv("REDIS_HOST")
@@ -100,7 +101,7 @@ func NewApp(kafkaLogger *logging.KafkaLogger) (*App, *auth_usecase.AuthUseCase, 
 		kafkaLogger.Log("INFO", fmt.Sprintf("Redis connected successfully: %s", status))
 	}
 
-	roleRepo := candidate_repo.NewRoleRepository(db)
+	roleRepo := repositories.NewRoleRepository(db)
 
 	// создаем EmailVerifier
 	emailVerifier := email.NewRedisEmailVerifier(rdb)
@@ -136,18 +137,16 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	kafkaLogger.Log("INFO", "Authentication routes registered")
 
 	// create rbac repo once
-	rbacRepo := candidate_repo.NewRBACRepository(a.DB)
-
-	searchRepo := search.NewSearchRepository(esClient, "candidates")
+	rbacRepo := repositories.NewRBACRepository(a.DB)
 
 	// Candidate
 	candidateHandler := candidate_routes.NewCandidateHandler(
 		candidate_usecase.NewCandidateUseCase(
-			candidate_repo.NewCandidateRepository(a.DB),
-			candidate_repo.NewVoteRepository(a.DB),
+			repositories.NewCandidateRepository(a.DB),
+			repositories.NewVoteRepository(a.DB),
 			a.Blockchain,
 			rdb,
-			searchRepo,
+			repositories.NewSearchRepository(esClient, "candidates"),
 			kafkaLogger,
 		),
 		tokenManager.(*domain.JwtToken),
@@ -159,8 +158,8 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	//Petitions
 	petitionsHandler := petition_routes.NewPetitionHandler(
 		petition_usecase.NewPetitionUseCase(
-			candidate_repo.NewPetitionRepository(a.DB),
-			candidate_repo.NewPetitionVoteRepository(a.DB),
+			repositories.NewPetitionRepository(a.DB),
+			repositories.NewPetitionVoteRepository(a.DB),
 			a.Blockchain,
 			rdb,
 			kafkaLogger,
@@ -176,13 +175,19 @@ func (a *App) Run(authUseCase *auth_usecase.AuthUseCase, tokenManager domain.Tok
 	blockchain_routes.RegisterBlockchainRoutes(mux, blockchainHandler)
 	kafkaLogger.Log("INFO", "Blockchain routes registered")
 
+	// Search
+	searcher := search.NewElasticsearch("http://elasticsearch:9200")
+	search_routes.SetupRoutes(mux, searcher)
+	kafkaLogger.Log("INFO", "Search routes registered")
+
 	// fallback for unknown routes
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		kafkaLogger.Log("WARN", fmt.Sprintf("Unknown route accessed: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr))
 		w.WriteHeader(http.StatusNotFound)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"error": "route not found"}`))
-	})
+	},
+	)
 
 	// Wrap mux with logging middleware
 	handler := middleware.CORSMiddleware(logMiddleware(mux))

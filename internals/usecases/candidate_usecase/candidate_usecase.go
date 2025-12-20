@@ -4,7 +4,7 @@ import (
 	"VoteGolang/internals/app/logging"
 	"VoteGolang/internals/domain"
 	candidate_data2 "VoteGolang/internals/domain"
-	"VoteGolang/internals/infrastructure/search"
+	"VoteGolang/internals/infrastructure/repositories"
 	"VoteGolang/internals/service"
 	"context"
 	"encoding/json"
@@ -23,7 +23,7 @@ type CandidateUseCase struct {
 	VoteRepo      domain.VoteRepository
 	Blockchain    service.BlockchainService
 	Redis         *redis.Client
-	SearchRepo    *search.SearchRepository
+	SearchRepo    *repositories.SearchRepository
 	Logger        *logging.KafkaLogger
 }
 
@@ -32,7 +32,7 @@ func NewCandidateUseCase(
 	vRepo candidate_data2.VoteRepository,
 	bc service.BlockchainService,
 	rdb *redis.Client,
-	searchRepo *search.SearchRepository,
+	searchRepo *repositories.SearchRepository,
 	kafkaLogger *logging.KafkaLogger) *CandidateUseCase {
 	return &CandidateUseCase{
 		CandidateRepo: cRepo,
@@ -54,7 +54,7 @@ func (uc *CandidateUseCase) CreateCandidate(candidate *domain.Candidate) error {
 	if uc.SearchRepo != nil {
 		go func() {
 			id := fmt.Sprintf("%d", candidate.ID)
-			if err := uc.SearchRepo.IndexDocument(id, candidate); err != nil {
+			if err := uc.SearchRepo.Index(context.Background(), id, candidate); err != nil {
 				uc.Logger.Log("WARN", fmt.Sprintf("Failed to index candidate %d: %v", candidate.ID, err))
 			} else {
 				uc.Logger.Log("DEBUG", fmt.Sprintf("Candidate %d indexed for search", candidate.ID))
